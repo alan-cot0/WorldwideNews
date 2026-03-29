@@ -196,7 +196,7 @@ const Globe = () => {
                         return t => {
                             projection.current.rotate(r(t));
                             projection.current.scale(s(t));
-                            render(country);
+                            render(country, true);
                         };
                     });
             }
@@ -217,7 +217,7 @@ const Globe = () => {
 
                 return t => {
                     projection.current.scale(s(t));
-                    render(t === 1 ? null : activeCountry);
+                    render(t === 1 ? null : activeCountry, true);
 
                     if (t === 1) setActiveCountry(null); //unselect country
                 };
