@@ -318,7 +318,7 @@ const Globe = () => {
                         return t => {
                             projection.current.rotate(r(t));
                             projection.current.scale(s(t));
-                            render(country, true);
+                            render(country);
                         };
                     });
 
