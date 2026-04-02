@@ -1,22 +1,25 @@
-# WorldwideNews
-Description TBA (The name of the project, at the moment, is a placeholder.)
+# WorldWide News
+Description TBA
 
 ## Setup / Running
 ### Backend
 ```
 cd backend
-python3 -m venv .venv
-pip install -r requirements.txt
+
+#run this block only on first setup
+    python3 -m venv .venv
+    pip install -r requirements.txt
 
 # Runs fastapi server
 fastapi dev main.py
-```
+    ```
+.\.venv\Scripts\activate
 
 ### Frontend
 ```
 cd frontend
-npm i
 
+npm i
 # Runs vite dev server
 npm run dev
 ```
