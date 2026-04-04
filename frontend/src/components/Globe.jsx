@@ -26,14 +26,14 @@ const Globe = () => {
     const [isZooming, setIsZooming] = useState(false);
 
     //set dimensions to fill screen
-    const [dimensions, setDimensions] = useState({ 
-        width: window.innerWidth, 
-        height: window.innerHeight 
+    const [dimensions, setDimensions] = useState({
+        width: window.innerWidth,
+        height: window.innerHeight,
     });
 
     //creates the 3D globe
     const projection = useRef(
-        d3.geoOrthographic().scale(350) //globe size
+        d3.geoOrthographic().scale(300), //globe size
     );
 
     //checking which country mouse is hovering over
@@ -82,11 +82,8 @@ const Globe = () => {
             const canvas = canvasRef.current;
             if (!canvas || !data) return;
 
-
             const w = canvas.width;
             const h = canvas.height;
-
-
 
             //initializes canvas which allows for drawing borders
             const context = canvas.getContext("2d");
@@ -115,7 +112,6 @@ const Globe = () => {
             path(land);
             context.fillStyle = "#38a169";
             context.fill();
-
 
             //draws borders between countries
             context.beginPath();
@@ -151,8 +147,7 @@ const Globe = () => {
                     context.fillText(targetCountry.properties.name, centroid[0], centroid[1] - 20);
                     context.shadowBlur = 0;
                 }
-            }
-            else {
+            } else {
                 //highlight/distinguish hovered country
                 if (hoveredCountry && hoveredCountry !== activeCountry) {
                     context.beginPath();
@@ -160,12 +155,13 @@ const Globe = () => {
                     context.fillStyle = "rgba(255, 255, 255, 0.3)"; // Subtle white overlay
                     context.fill();
                 }
-                
+
                 //add hovered countries name
                 const countryToLabel = hoveredCountry;
                 if (countryToLabel) {
                     const centroid = projection.current(d3.geoCentroid(countryToLabel));
-                    if (centroid) { //checks if country is visible before highlighting and showing name
+                    if (centroid) {
+                        //checks if country is visible before highlighting and showing name
                         context.fillStyle = "#000000";
                         context.font = "bold 16px Arial";
                         context.textAlign = "center";
@@ -176,10 +172,6 @@ const Globe = () => {
                     }
                 }
             }
-
-
-
-
         },
         [data, activeCountry, projection.current, dimensions, hoveredCountry],
     );
@@ -192,31 +184,27 @@ const Globe = () => {
         //makes the user unable to move while in country view
         canvas.on(".drag", null);
         canvas.on(".zoom", null);
-    
-
 
         if (!isZoomed) {
             let v0, q0, r0;
 
             //zoom functionality
             const initialScale = 350;
-            const zoom = d3.zoom()
-            .scaleExtent([0.5, 5])
-            .filter(event => {
-                return event.type === 'wheel' || (event.touches && event.touches.length > 1);
-            })
-            .on("zoom", (event) => {
-                projection.current.scale(initialScale * event.transform.k);
-                render(activeCountry, true);
-            })
-            .on("end", () => {
-                render(activeCountry, false);
-            });
+            const zoom = d3
+                .zoom()
+                .scaleExtent([0.5, 5])
+                .filter(event => {
+                    return event.type === "wheel" || (event.touches && event.touches.length > 1);
+                })
+                .on("zoom", event => {
+                    projection.current.scale(initialScale * event.transform.k);
+                    render(activeCountry, true);
+                })
+                .on("end", () => {
+                    render(activeCountry, false);
+                });
 
-            canvas.call(zoom)
-            .on("mousedown.zoom", null)
-            .on("touchstart.zoom", null);
-
+            canvas.call(zoom).on("mousedown.zoom", null).on("touchstart.zoom", null);
 
             //d3.drag handles the dragging motion
             const drag = d3
@@ -242,22 +230,20 @@ const Globe = () => {
 
             canvas.call(drag);
 
-
             //track mouse hovering
-            canvas.on("mousemove", (event) => {
-            
-            const [mouseX, mouseY] = d3.pointer(event);
-            const coords = projection.current.invert([mouseX, mouseY]);
-            const country = coords && data.countries.find(f => d3.geoContains(f, coords));
-            if (country !== hoveredCountry) {
-                setHoveredCountry(country);
-            }
+            canvas.on("mousemove", event => {
+                const [mouseX, mouseY] = d3.pointer(event);
+                const coords = projection.current.invert([mouseX, mouseY]);
+                const country = coords && data.countries.find(f => d3.geoContains(f, coords));
+                if (country !== hoveredCountry) {
+                    setHoveredCountry(country);
+                }
             });
             canvas.on("mouseleave", () => setHoveredCountry(null));
         }
 
         //handles what happens when a user clicks on the globe
-        
+
         canvas.on("click", event => {
             //if the user is already zoomed on a country, nothing happens
             if (isZoomed) return;
@@ -323,7 +309,7 @@ const Globe = () => {
                     });
 
                 setIsZooming(false);
-                render(undefined, false)
+                render(undefined, false);
             }
         });
 
@@ -335,7 +321,7 @@ const Globe = () => {
     const handleGoBack = () => {
         setIsZoomed(false);
 
-        render(undefined, false)
+        render(undefined, false);
 
         d3.transition()
             .duration(800)
@@ -349,7 +335,7 @@ const Globe = () => {
                     if (t === 1) setActiveCountry(null); //unselect country
                 };
             });
-        render(undefined, true)
+        render(undefined, true);
     };
 
     return (
