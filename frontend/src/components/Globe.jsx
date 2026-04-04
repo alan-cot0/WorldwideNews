@@ -346,7 +346,7 @@ const Globe = () => {
                     onClick={handleGoBack}
                     style={{
                         position: "absolute",
-                        top: "20px",
+                        top: "80px",
                         left: "50%",
                         transform: "translateX(-50%)",
                         background: "white",
