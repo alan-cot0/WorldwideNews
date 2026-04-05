@@ -12,13 +12,11 @@ cd backend
 
 # Runs fastapi server
 fastapi dev main.py
-    ```
-.\.venv\Scripts\activate
+```
 
 ### Frontend
 ```
 cd frontend
-
 npm i
 # Runs vite dev server
 npm run dev
