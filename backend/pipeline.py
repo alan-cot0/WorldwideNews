@@ -51,22 +51,26 @@ def filter_gkg(df):
 def build_country_articles(df):
     rows = []
 
+    def s(val):
+        # Coerce NaN/None to empty string
+        return "" if not isinstance(val, str) else val
+
     for _, row in df.iterrows():
-        locations_raw = row.get("V1LOCATIONS", "")
+        locations_raw = s(row.get("V1LOCATIONS"))
         country_counts = get_country_counts(locations_raw)
         assignments = assign_countries(country_counts)
         if not assignments:
             continue
 
-        tone, positive_score, negative_score, polarity = parse_tone(row.get("V1.5TONE", ""))
-        theme_count = count_semicolon_items(row.get("V1THEMES", ""))
-        person_count = count_semicolon_items(row.get("V1PERSONS", ""))
+        tone, positive_score, negative_score, polarity = parse_tone(s(row.get("V1.5TONE")))
+        theme_count = count_semicolon_items(s(row.get("V1THEMES")))
+        person_count = count_semicolon_items(s(row.get("V1PERSONS")))
 
-        url = row.get("V2DOCUMENTIDENTIFIER", "")
-        themes = row.get("V1THEMES", "") or None
-        persons = row.get("V1PERSONS", "") or None
-        source_name = row.get("V2SOURCECOMMONNAME", "") or None
-        pub_date = parse_date(row.get("V2.1DATE", ""))
+        url = s(row.get("V2DOCUMENTIDENTIFIER"))
+        themes = s(row.get("V1THEMES")) or None
+        persons = s(row.get("V1PERSONS")) or None
+        source_name = s(row.get("V2SOURCECOMMONNAME")) or None
+        pub_date = parse_date(s(row.get("V2.1DATE")))
 
         for country_code, confidence in assignments:
             location_count, total_location_count = count_location_mentions(
