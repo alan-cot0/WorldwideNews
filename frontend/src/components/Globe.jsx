@@ -339,7 +339,7 @@ const Globe = () => {
     };
 
     return (
-        <div style={{ width: "80vw", height: "80vh", overflow: "hidden" }}>
+        <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
             {isZoomed && ( //renders button only when zoomed
                 <button
                     //define appearance of go back button
@@ -367,8 +367,8 @@ const Globe = () => {
                 width={dimensions.width}
                 height={dimensions.height}
                 style={{
-                    display: "block",
-                    position: "absolute",
+                    // display: "block",
+                    // position: "absolute",
                     top: 0,
                     left: 0,
                     cursor: isZoomed ? "default" : isDragging ? "grab" : "default",
