@@ -1,5 +1,8 @@
 /* AI GENERATED: https://genai.umass.edu/share/qZzhcGQtJ0F2o79SdiI1F */
-
+/* ========== Img ========== */
+img {
+    margin:5px;
+}
 
 /* ========== Navbar Wrapper ========== */
 .navbar {
@@ -23,6 +26,17 @@
     height: 64px;
 }
 
+/* ========== Top Left Container ========== */
+.logo-container {
+    display: flex;
+    align-items: left;
+    justify-content: space-between;
+    /* max-width: 1200px; */
+    /* margin: 0 auto; */
+    padding: 0 24px;
+    height: 64px;
+}
+
 /* ========== Logo / Brand ========== */
 .navbar-logo {
     font-size: 1.5rem;
@@ -31,6 +45,17 @@
     text-decoration: none;
     letter-spacing: 1px;
     transition: opacity 0.3s;
+}
+
+.navbar-tagline {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #ffffff;
+    text-decoration: none;
+    letter-spacing: 1px;
+    transition: opacity 0.3s;
+    margin:0px
+
 }
 
 .navbar-logo:hover {

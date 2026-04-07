@@ -12,11 +12,14 @@ const Navbar = () => {
         <nav className="navbar">
             <div className="navbar-container">
                 {/* Brand / Logo */}
-                <div>
+                <div className="logo-container">
                     <img src="../../public/vite.svg"></img>
-                <a href="/" className="navbar-logo">
-                    WorldWideNews
-                </a>
+                    <div>
+                    <a href="/" className="navbar-logo">
+                        WorldWideNews
+                    </a>
+                    <p className="navbar-tagline">Transparency as a Priority</p>
+                    </div>
                 </div>
                 {/* Hamburger Icon (mobile) */}
                 <button
@@ -33,23 +36,13 @@ const Navbar = () => {
                 {/* Nav Links */}
                 <ul className={`nav-links ${menuOpen ? "open" : ""}`}>
                     <li>
-                        <a href="#home" onClick={() => setMenuOpen(false)}>
-                            Home
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#about" onClick={() => setMenuOpen(false)}>
+                        <a href="#services" onClick={() => setMenuOpen(false)}>
                             About
                         </a>
                     </li>
                     <li>
-                        <a href="#services" onClick={() => setMenuOpen(false)}>
-                            Services
-                        </a>
-                    </li>
-                    <li>
                         <a href="#contact" onClick={() => setMenuOpen(false)}>
-                            Contact
+                            Scoring
                         </a>
                     </li>
                 </ul>

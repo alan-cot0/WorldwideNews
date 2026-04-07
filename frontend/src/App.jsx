@@ -8,10 +8,7 @@ function App() {
         <>
             <Navbar />
             <main className="app-main">
-                <SidePanel>
-                    {/* Drop your news-feed / filter content here */}
-                    <p>Your panel content goes here.</p>
-                </SidePanel>
+                <SidePanel />
 
                 <div className="globe-wrapper">
                     <Globe />

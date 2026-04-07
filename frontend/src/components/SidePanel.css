@@ -33,7 +33,7 @@
     overflow-y: auto;
     overflow-x: hidden;
     /* Right padding stops content hiding under the toggle tab */
-    padding: 20px var(--sp-peek) 20px 16px;
+    padding: 20px calc(var(--sp-peek) + 20px) 20px 16px;
     box-sizing: border-box;
     scrollbar-width: thin;
     scrollbar-color: var(--sp-accent) transparent;
@@ -41,7 +41,7 @@
 
 .side-panel__heading {
     color: #fff;
-    font-size: 0.85rem;
+    /* font-size: 1.5rem; */
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -51,7 +51,7 @@
 
 .side-panel__content {
     color: #cdd3e0;
-    font-size: 0.9rem;
+    font-size: 1.2rem;
     line-height: 1.6;
 }
 

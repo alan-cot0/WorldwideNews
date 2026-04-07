@@ -339,7 +339,7 @@ const Globe = () => {
     };
 
     return (
-        <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
+        <div style={{ width: "100%", height: "80vh", overflow: "hidden" }}>
             {isZoomed && ( //renders button only when zoomed
                 <button
                     //define appearance of go back button
