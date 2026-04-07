@@ -1,8 +1,27 @@
+/* ── Reset Vite's opinionated #root defaults ───────────── */
 #root {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 2rem;
-    text-align: center;
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    text-align: left;
+}
+
+/* ── Full-viewport layout sitting below the fixed navbar ── */
+.app-main {
+    display: flex;
+    height: calc(100vh - 64px); /* 64px matches your navbar height */
+    margin-top: 64px;            /* push content below fixed navbar  */
+    overflow: hidden;
+    position: relative;          /* anchor for mobile overlay panel  */
+}
+
+/* ── Globe fills whatever horizontal space remains ─────── */
+.globe-wrapper {
+    flex: 1 1 0;
+    min-width: 0;    /* prevents flex children from overflowing */
+    height: 100%;
+    overflow: hidden;
 }
 
 .logo {

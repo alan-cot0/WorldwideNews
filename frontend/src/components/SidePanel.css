@@ -1,0 +1,115 @@
+ /* AI GENERATED: https://genai.umass.edu/share/6vjwQCoCH-kzh8jKxVP2E  */
+
+/* ── Design tokens ─────────────────────────────────────── */
+:root {
+    --sp-peek   : 40px;                       /* visible strip when closed  */
+    --sp-width  : clamp(260px, 33vw, 420px);  /* full open width (≈ 1/3)    */
+    --sp-bg     : #16213e;
+    --sp-accent : #0f3460;
+    --sp-ease   : cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Outer shell — only the WIDTH transitions ───────────── */
+.side-panel {
+    flex-shrink: 0;
+    position: relative;
+    width: var(--sp-peek);      /* "peek" state — toggle is always visible */
+    height: 100%;
+    background-color: var(--sp-bg);
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+    transition: width 0.35s var(--sp-ease);
+    overflow: hidden;           /* clips body content to current width      */
+    z-index: 200;
+}
+
+.side-panel--open {
+    width: var(--sp-width);
+}
+
+/* ── Scrollable body — held at open width to prevent reflow */
+.side-panel__body {
+    width: var(--sp-width);
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Right padding stops content hiding under the toggle tab */
+    padding: 20px calc(var(--sp-peek) + 20px) 20px 16px;
+    box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sp-accent) transparent;
+}
+
+.side-panel__heading {
+    color: #fff;
+    /* font-size: 1.5rem; */
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin: 0 0 16px;
+    white-space: nowrap;
+}
+
+.side-panel__content {
+    color: #cdd3e0;
+    font-size: 1.2rem;
+    line-height: 1.6;
+}
+
+/* ── Toggle tab ─────────────────────────────────────────── */
+/*
+ * Sits at the right edge of the panel.
+ * In peek state  (40 px panel):  the toggle IS the entire peek strip.
+ * In open state  (~33 vw panel): it acts as a close handle on the edge.
+ */
+.side-panel__toggle {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    width: var(--sp-peek);
+    height: 56px;
+    background-color: var(--sp-accent);
+    border: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    color: #e8eaf6;
+    font-size: 1.6rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+    z-index: 10;
+    /* Slight rounding on the right side creates a subtle "tab" look */
+    border-radius: 0 6px 6px 0;
+}
+
+.side-panel__toggle:hover,
+.side-panel__toggle:focus-visible {
+    background-color: #1a5276;
+    outline: 2px solid rgba(255, 255, 255, 0.3);
+    outline-offset: -2px;
+}
+
+/* ── Mobile (≤ 768 px) — panel overlays the globe ──────── */
+@media (max-width: 768px) {
+    :root {
+        --sp-peek : 36px;
+        --sp-width: 82vw;
+    }
+
+    /*
+     * Switch to absolute positioning so the open panel floats
+     * over the globe instead of squishing it on a small screen.
+     */
+    .side-panel {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+    }
+
+    .side-panel--open {
+        box-shadow: 6px 0 28px rgba(0, 0, 0, 0.6);
+    }
+}

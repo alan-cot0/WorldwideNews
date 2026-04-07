@@ -1,12 +1,19 @@
 import "./App.css";
 import Globe from "./components/Globe";
+import Navbar from "./components/Navbar";
+import SidePanel from "./components/SidePanel";
 
 function App() {
     return (
         <>
-            <h1>WorldWideNews</h1>
+            <Navbar />
+            <main className="app-main">
+                <SidePanel />
 
-            <Globe></Globe>
+                <div className="globe-wrapper">
+                    <Globe />
+                </div>
+            </main>
         </>
     );
 }
