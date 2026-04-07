@@ -12,10 +12,12 @@ const Navbar = () => {
         <nav className="navbar">
             <div className="navbar-container">
                 {/* Brand / Logo */}
+                <div>
+                    <img src="../../public/vite.svg"></img>
                 <a href="/" className="navbar-logo">
                     WorldWideNews
                 </a>
-
+                </div>
                 {/* Hamburger Icon (mobile) */}
                 <button
                     className={`hamburger ${menuOpen ? "active" : ""}`}
