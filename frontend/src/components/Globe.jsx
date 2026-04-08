@@ -43,9 +43,9 @@ const Globe = () => {
     const [targetZoom , setTargetZoom] = useState(INITIAL_SCALE); // change to ref?
 
     //set dimensions to fill screen
-    const [dimensions, setDimensions] = useState({ 
-        width: window.innerWidth, 
-        height: window.innerHeight 
+    const [dimensions, setDimensions] = useState({
+        width: window.innerWidth,
+        height: window.innerHeight,
     });
 
     //creates the 3D globe
@@ -362,6 +362,7 @@ const Globe = () => {
                     style={{
                         position: "absolute",
                         top: "80px",
+                        top: "80px",
                         left: "50%",
                         transform: "translateX(-50%)",
                         background: "white",
@@ -382,6 +383,8 @@ const Globe = () => {
                 width={dimensions.width}
                 height={dimensions.height}
                 style={{
+                    // display: "block",
+                    // position: "absolute",
                     // display: "block",
                     // position: "absolute",
                     top: 0,
