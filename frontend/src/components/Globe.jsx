@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo, use } from "react";
+import React, { useEffect, useRef, useState, useCallback, forceUpdate } from "react";
 import * as d3 from "d3";
 
 // This is the dataset that holds the country boundaries and globe data
@@ -19,7 +19,7 @@ const ZState = Object.freeze({
 const INITIAL_SCALE = 300;
 
 const Globe = () => {
-    console.log("react rendering globe component");
+    // console.log("react rendering globe component");
     const canvasRef = useRef(null);
     // const goBackButtonRef = useRef(null);
     const [displayGoBack, setDisplayGoBack] = useState(false);
@@ -28,7 +28,7 @@ const Globe = () => {
     const [data, setData] = useState(null);
 
     //stores current selected country by user
-    const [activeCountry, setActiveCountry] = useState(null);
+    const activeCountry = useRef(null);
 
     //checking which country mouse is hovering over
     const hoveredCountry = useRef(null);
@@ -61,12 +61,11 @@ const Globe = () => {
             const h = window.innerHeight;
             setDimensions({ width: w, height: h });
             projection.current.translate([w / 2, h / 2]);
-            render();
         };
         window.addEventListener("resize", handleResize);
         return () => window.removeEventListener("resize", handleResize);
     }, []);
-
+    
     //loads all the topojson data
     useEffect(() => {
         Promise.all([
@@ -92,10 +91,10 @@ const Globe = () => {
     }, []);
 
     /** draws the globe, gets called when view changes
-     * @param targetCountry country selected to zoom in on
+     * @param lowRes if true, uses lower resolution data for faster rendering (used when rendering many frames in succession)
      */
-    const render = useCallback((targetCountry = activeCountry, lowRes = false) => {
-        // console.log("rendering", { targetCountry, lowRes });
+    const render = useCallback((lowRes = false) => {
+        // console.log("rendering", { lowRes });
         const canvas = canvasRef.current;
         if (!canvas || !data) return;
 
@@ -104,6 +103,9 @@ const Globe = () => {
         const context = canvas.getContext("2d");
 
         projection.current.translate([w / 2, h / 2]);
+        // console.log("current scale", projection.current.scale());
+        if (zoomState.current === ZState.NotZoomed && projection.current.scale() > 900)
+            lowRes = false; //if zoomed in, override to high res
 
         //d3 function that converts coordinates to canvas shapes
         const path = d3.geoPath(projection.current, context);
@@ -142,9 +144,9 @@ const Globe = () => {
         context.stroke();
 
         //if a country is selected, highlight it
-        if (targetCountry) {
+        if (activeCountry.current) {
             context.beginPath();
-            path(targetCountry);
+            path(activeCountry.current);
             context.fillStyle = "#f6ad55";
             context.fill();
             context.strokeStyle = "#ffffff";
@@ -153,18 +155,18 @@ const Globe = () => {
             // console.log(zoomState.current);
             //adds name of country when zoomed in
             if (zoomState.current > 0) {
-                const centroid = projection.current(d3.geoCentroid(targetCountry));
+                const centroid = projection.current(d3.geoCentroid(activeCountry.current));
                 context.fillStyle = "#000000";
                 context.font = "bold 20px Arial";
                 context.textAlign = "center";
                 context.shadowBlur = 4;
                 context.shadowColor = "white";
-                context.fillText(targetCountry.properties.name, centroid[0], centroid[1] - 20);
+                context.fillText(activeCountry.current.properties.name, centroid[0], centroid[1] - 20);
                 context.shadowBlur = 0;
             }
         } else {
             //highlight/distinguish hovered country
-            if (hoveredCountry.current && hoveredCountry.current !== activeCountry) {
+            if (hoveredCountry.current && hoveredCountry.current !== activeCountry.current) {
                 context.beginPath();
                 path(hoveredCountry.current);
                 context.fillStyle = "rgba(255, 255, 255, 0.3)"; // Subtle white overlay
@@ -186,9 +188,8 @@ const Globe = () => {
                 }
             }
         }
-    }, [data, activeCountry]);
-
-    useEffect(() => { console.log("render updated"); }, [render]);
+    }, [data, dimensions]);
+    useEffect(() => { console.log("render updated"); render(true); }, [render]);
 
     // set up canvas event handlers
     useEffect(() => {
@@ -207,10 +208,10 @@ const Globe = () => {
             .on("zoom", (event) => {
                 setTargetZoom(INITIAL_SCALE * event.transform.k);
                 projection.current.scale(INITIAL_SCALE * event.transform.k);
-                render(activeCountry, true);
+                render(true);
             })
             .on("end", () => {
-                render(activeCountry, false);
+                render(false);
             });
 
         // disables default behavior?
@@ -231,11 +232,11 @@ const Globe = () => {
                 projection.current.rotate(versor.rotation(versor.multiply(q0, versor.delta(v0, v1))));
 
                 //low resolution during drag
-                render(activeCountry, true);
+                render(true);
             })
             .on("end", () => {
                 setIsDragging(false);
-                render(activeCountry, false);
+                render(false);
             });
         canvas.call(drag);
 
@@ -249,9 +250,9 @@ const Globe = () => {
             if (country !== hoveredCountry.current) {
                 hoveredCountry.current = country;
                 // console.log("changing country hover");
-                render(null, true);
+                render(true);
                 timer.restart((t) => {
-                    render(null, false);
+                    render(false);
                     timer.stop();
                     console.log("timer stopped");
                 }, 200);
@@ -275,7 +276,7 @@ const Globe = () => {
             hoveredCountry.current = null;
 
             //if its in a country, choose that country
-            setActiveCountry(country);
+            activeCountry.current = country;
             setDisplayGoBack(true);
 
             //toggle being zoomed in
@@ -309,7 +310,7 @@ const Globe = () => {
                     return t => {
                         projection.current.rotate(r(t));
                         projection.current.scale(s(t));
-                        render(country, true);
+                        render(true);
                     };
                 })
                 .end()//.catch((err) => {
@@ -318,12 +319,13 @@ const Globe = () => {
                 // })
                 .finally(() => {
                     zoomState.current = ZState.Zoomed;
-                    render(country, false);
+                    render(false);
                 });
+            // forceUpdate();
             console.log("transition started");
         });
 
-        render(null, false); //initial render of globe
+        render(false); //initial render of globe
 
         return () => {
             console.log(data, canvasRef);
@@ -342,18 +344,17 @@ const Globe = () => {
 
                 return t => {
                     projection.current.scale(s(t));
-                    render(t === 1 ? null : activeCountry, true);
-
-                    if (t === 1) setActiveCountry(null); //unselect country
+                    render(true);
                 };
             })
             .end().finally(() => {
+                activeCountry.current = null;
                 zoomState.current = ZState.NotZoomed;
             });
     }, [render, targetZoom]);
 
     return (
-        <div style={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
+        <div style={{ width: "100%", height: "100vh", overflow: "hidden" }}>
             {displayGoBack && ( //renders button only when zoomed
                 <button
                     //define appearance of go back button
@@ -361,7 +362,6 @@ const Globe = () => {
                     onClick={handleGoBack}
                     style={{
                         position: "absolute",
-                        top: "80px",
                         top: "80px",
                         left: "50%",
                         transform: "translateX(-50%)",
@@ -385,8 +385,6 @@ const Globe = () => {
                 style={{
                     // display: "block",
                     // position: "absolute",
-                    // display: "block",
-                    // position: "absolute",
                     top: 0,
                     left: 0,
                     cursor: zoomState.current === ZState.Zoomed ? "default" : isDragging ? "grab" : "default",
@@ -397,16 +395,3 @@ const Globe = () => {
 };
 
 export default Globe;
-
-//next tasks
-
-// Add pop up box for where news will show up
-
-// Find how to link backend with this frontend
-
-//ptag space for sourcing individual articles, using publication and author
-//make the mission always known
-//use UTC, have update time frame in the transparency area
-//we can have different news for each tone for each country
-
-//make zoom in encapsulate whole thing, have words sit on top

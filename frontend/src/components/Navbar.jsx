@@ -6,7 +6,13 @@ import "./Navbar.css";
 const Navbar = () => {
     const [menuOpen, setMenuOpen] = useState(false);
 
-    const toggleMenu = () => setMenuOpen(prev => !prev);
+    const toggleMenu = useCallback((setting) => {
+        if (setting !== undefined) {
+            setMenuOpen(prev => !prev);
+            return;
+        }
+        setMenuOpen(setting);
+    }, []);
 
     return (
         <nav className="navbar">
