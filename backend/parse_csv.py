@@ -79,11 +79,23 @@ def count_location_mentions(locations_raw, country_code):
     return country_count, total
 
 
+def open_csv(filepath):
+    for encoding in ("utf-8", "utf-8-sig", "latin-1"):
+        try:
+            f = open(filepath, newline="", encoding=encoding)
+            f.read(1024)
+            f.seek(0)
+            return f
+        except (UnicodeDecodeError, ValueError):
+            f.close()
+    raise ValueError(f"Could not read {filepath} with any known encoding")
+
+
 def load_csv(filepath):
     raw_rows = []
     seen_urls = set()
 
-    with open(filepath, newline="", encoding="utf-8") as f:
+    with open_csv(filepath) as f:
         reader = csv.DictReader(f)
         for row in reader:
             source_collection = row.get("V2SOURCECOLLECTIONIDENTIFIER", "").strip()
