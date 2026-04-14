@@ -19,7 +19,7 @@ const Navbar = () => {
             <div className="navbar-container">
                 {/* Brand / Logo */}
                 <div className="logo-container">
-                    <img src="../../public/vite.svg"></img>
+                    <img src="../../public/new_logo.png"></img>
                     <div>
                     <a href="/" className="navbar-logo">
                         WorldWideNews

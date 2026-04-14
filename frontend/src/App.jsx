@@ -2,6 +2,7 @@ import "./App.css";
 import Globe from "./components/Globe";
 import Navbar from "./components/Navbar";
 import SidePanel from "./components/SidePanel";
+import TransparencySidePanel from "./components/TransparencySidePanel";
 
 function App() {
     return (
@@ -13,6 +14,8 @@ function App() {
                 <div className="globe-wrapper">
                     <Globe />
                 </div>
+
+                <TransparencySidePanel />
             </main>
         </>
     );
