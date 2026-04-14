@@ -1,4 +1,8 @@
 frontend/node_modules/*
+
 backend/.venv/*
 backend/__pycache__/*
 backend/.env
+backend/data/*
+!backend/data/
+!data/mappings.csv

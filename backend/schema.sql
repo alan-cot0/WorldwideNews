@@ -61,3 +61,9 @@ CREATE TABLE IF NOT EXISTS country_status (
     article_count INTEGER,
     status TEXT
 );
+
+CREATE TABLE IF NOT EXISTS country_mappings (
+    domain_name TEXT,
+    country_code CHAR(2),
+    country_name TEXT
+);

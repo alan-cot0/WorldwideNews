@@ -270,7 +270,7 @@ def create_tables(conn):
 
 def main():
     print("Loading CSV...")
-    raw_rows = load_csv("gkg.csv")
+    raw_rows = load_csv("data/gkg.csv")
     print(f"  {len(raw_rows)} rows passed quality filter")
 
     raw_article_rows = build_raw_article_rows(raw_rows)
@@ -280,12 +280,12 @@ def main():
     print(f"  {len(country_article_rows)} country_article rows")
 
     conn = psycopg2.connect(DB_URL, user=os.getenv("USER"), password=os.getenv("PASS"))
-
-    print("Loading mappings...")
-    load_mappings(conn)
     
     print("Creating tables...")
     create_tables(conn)
+
+    print("Loading mappings...")
+    load_mappings(conn)
 
     print("Inserting into raw_articles...")
     insert_raw_articles(conn, raw_article_rows)
