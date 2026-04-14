@@ -1,8 +1,11 @@
 import csv
 import re
+import os
 from collections import Counter
 from datetime import datetime, timezone
 
+from dotenv import load_dotenv
+load_dotenv()
 import psycopg2
 from psycopg2.extras import execute_values
 
@@ -236,6 +239,26 @@ def insert_country_articles(conn, rows):
         execute_values(cur, sql, rows)
     conn.commit()
 
+def load_mappings (conn):
+    
+    # In case there are new mappings
+    with conn.cursor() as cur:
+        cur.execute("TRUNCATE TABLE country_mappings;")
+
+    rows = []
+
+    with open("data/mapping.csv", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+
+        for row in reader:
+            rows.append((row['Domain'], row['FIPS'], row['CountryName']))
+
+    sql = """
+        INSERT INTO country_mappings (domain_name, country_code, country_name) VALUES %s
+    """
+    with conn.cursor() as cur:
+        execute_values(cur, sql, rows)
+    conn.commit()
 
 def create_tables(conn):
     with open("schema.sql") as f:
@@ -247,7 +270,7 @@ def create_tables(conn):
 
 def main():
     print("Loading CSV...")
-    raw_rows = load_csv("../gkg.csv")
+    raw_rows = load_csv("gkg.csv")
     print(f"  {len(raw_rows)} rows passed quality filter")
 
     raw_article_rows = build_raw_article_rows(raw_rows)
@@ -256,8 +279,11 @@ def main():
     country_article_rows = build_country_article_rows(raw_rows)
     print(f"  {len(country_article_rows)} country_article rows")
 
-    conn = psycopg2.connect(DB_URL)
+    conn = psycopg2.connect(DB_URL, user=os.getenv("USER"), password=os.getenv("PASS"))
 
+    print("Loading mappings...")
+    load_mappings(conn)
+    
     print("Creating tables...")
     create_tables(conn)
 
