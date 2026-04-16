@@ -1,16 +1,13 @@
 import csv
-import re
-import os
 from collections import Counter
 from datetime import datetime, timezone
-
+from utils.daily import get_update, parse_gkg
+from psycopg import AsyncConnection
 from dotenv import load_dotenv
+
 load_dotenv()
-import psycopg2
-from psycopg2.extras import execute_values
 
 DB_URL = "postgresql://localhost/worldwidenews"
-
 UPDATE_BATCH = datetime.now(timezone.utc)
 
 
@@ -94,44 +91,45 @@ def open_csv(filepath):
     raise ValueError(f"Could not read {filepath} with any known encoding")
 
 
-def load_csv(filepath):
+async def load_csv(stream):
     raw_rows = []
     seen_urls = set()
 
-    with open_csv(filepath) as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            source_collection = row.get("V2SOURCECOLLECTIONIDENTIFIER", "").strip()
-            locations = row.get("V1LOCATIONS", "").strip()
-            themes = row.get("V1THEMES", "").strip()
-            tone = row.get("V1.5TONE", "").strip()
-            url = row.get("V2DOCUMENTIDENTIFIER", "").strip()
+    async for row in stream:
+        source_collection = row.get("V2SOURCECOLLECTIONIDENTIFIER", "").strip()
+        locations = row.get("V1LOCATIONS", "").strip()
+        themes = row.get("V1THEMES", "").strip()
+        tone = row.get("V1.5TONE", "").strip()
+        url = row.get("V2DOCUMENTIDENTIFIER", "").strip()
 
-            if source_collection != "1":
-                continue
-            if not locations or not themes or not tone:
-                continue
-            if not url or url in seen_urls:
-                continue
+        if source_collection != "1":
+            continue
+        if not locations or not themes or not tone:
+            continue
+        if not url or url in seen_urls:
+            continue
 
-            seen_urls.add(url)
+        seen_urls.add(url)
 
-            raw_rows.append({
-                "url": url,
-                "source_name": row.get("V2SOURCECOMMONNAME", "").strip() or None,
-                "pub_date": parse_date(row.get("V2.1DATE", "")),
-                "themes": themes,
-                "persons": row.get("V1PERSONS", "").strip() or None,
-                "organizations": row.get("V1ORGANIZATIONS", "").strip() or None,
-                "locations_raw": locations,
-                "tone_raw": tone,
-            })
+        raw_rows.append({
+            "url": url,
+            "source_name": row.get("V2SOURCECOMMONNAME", "").strip() or None,
+            "pub_date": parse_date(row.get("V2.1DATE", "")),
+            "themes": themes,
+            "persons": row.get("V1PERSONS", "").strip() or None,
+            "organizations": row.get("V1ORGANIZATIONS", "").strip() or None,
+            "locations_raw": locations,
+            "tone_raw": tone,
+        })
+        
+        
 
     return raw_rows
 
 
 def build_raw_article_rows(raw_rows):
     result = []
+    
     for row in raw_rows:
         country_counts = get_country_counts(row["locations_raw"])
         assignments = assign_countries(country_counts)
@@ -199,31 +197,32 @@ def build_country_article_rows(raw_rows):
     return result
 
 
-def insert_raw_articles(conn, rows):
+async def insert_raw_articles(conn: AsyncConnection, rows):
     sql = """
         INSERT INTO raw_articles (
             url, country_code, country_confidence, source_name,
             pub_date, update_batch, themes, persons, organizations,
             locations_raw, tone_raw
-        ) VALUES %s
+        ) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )
         ON CONFLICT (url, country_code) DO UPDATE SET
             country_confidence = EXCLUDED.country_confidence,
             update_batch = EXCLUDED.update_batch,
             tone_raw = EXCLUDED.tone_raw
     """
-    with conn.cursor() as cur:
-        execute_values(cur, sql, rows)
-    conn.commit()
+    async with conn.cursor() as cur:
+        await cur.executemany(sql, rows)
+
+    await conn.commit()
 
 
-def insert_country_articles(conn, rows):
+async def insert_country_articles(conn: AsyncConnection, rows):
     sql = """
         INSERT INTO country_articles (
             url, country_code, country_confidence, source_name,
             pub_date, update_batch, themes, persons, organizations,
             locations_raw, tone, positive_score, negative_score, polarity,
             theme_count, person_count, location_count, total_location_count
-        ) VALUES %s
+        ) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )
         ON CONFLICT (url, country_code) DO UPDATE SET
             tone = EXCLUDED.tone,
             positive_score = EXCLUDED.positive_score,
@@ -235,16 +234,18 @@ def insert_country_articles(conn, rows):
             total_location_count = EXCLUDED.total_location_count,
             update_batch = EXCLUDED.update_batch
     """
-    with conn.cursor() as cur:
-        execute_values(cur, sql, rows)
-    conn.commit()
+    async with conn.cursor() as cur:
+        await cur.executemany(sql, rows)
+    await conn.commit()
 
-def load_mappings (conn):
-    
+async def load_mappings (conn: AsyncConnection):
+    print("Loading Mappings ... ")
+
     # In case there are new mappings
-    with conn.cursor() as cur:
-        cur.execute("TRUNCATE TABLE country_mappings;")
+    async with conn.cursor() as cur:
+        await cur.execute("TRUNCATE TABLE country_mappings;")
 
+    
     rows = []
 
     with open("data/mapping.csv", newline="", encoding="utf-8") as f:
@@ -254,23 +255,55 @@ def load_mappings (conn):
             rows.append((row['Domain'], row['FIPS'], row['CountryName']))
 
     sql = """
-        INSERT INTO country_mappings (domain_name, country_code, country_name) VALUES %s
+        COPY country_mappings (domain_name, country_code, country_name) FROM STDIN
     """
-    with conn.cursor() as cur:
-        execute_values(cur, sql, rows)
-    conn.commit()
 
-def create_tables(conn):
+    # This is a big bottleneck from testing.
+    # I decided to switch to Postgres COPY which seems to be 
+    # very efficent.
+    # https://www.psycopg.org/psycopg3/docs/basic/copy.html
+    # async with conn.cursor() as cur:
+    #     await cur.executemany(sql, rows)
+
+    async with conn.cursor() as cur:
+        async with cur.copy(sql) as copy:
+            for row in rows:
+                await copy.write_row(row)
+
+
+    await conn.commit()
+
+async def create_tables(conn: AsyncConnection):
+    print("Creating Tables ...")
     with open("schema.sql") as f:
         sql = f.read()
-    with conn.cursor() as cur:
-        cur.execute(sql)
-    conn.commit()
+    
+    async with conn.cursor() as cur:
+        await cur.execute(sql)
+    
+    await conn.commit()
 
+async def get_cached ():
+    with open_csv("data/gkg.csv") as f:
+        reader = csv.DictReader(f)
 
-def main():
+        for row in reader:
+            yield row
+    
+async def refresh_15min (conn: AsyncConnection, cache: bool):
+    
+    print("Fetching Url")
+    _, _, gkg_url = await get_update()
+    
+    stream = None
+    if (cache):
+        stream = get_cached()
+    else:
+        stream = await parse_gkg(gkg_url)
+
     print("Loading CSV...")
-    raw_rows = load_csv("data/gkg.csv")
+    raw_rows = await load_csv(stream)
+    
     print(f"  {len(raw_rows)} rows passed quality filter")
 
     raw_article_rows = build_raw_article_rows(raw_rows)
@@ -279,23 +312,14 @@ def main():
     country_article_rows = build_country_article_rows(raw_rows)
     print(f"  {len(country_article_rows)} country_article rows")
 
-    conn = psycopg2.connect(DB_URL, user=os.getenv("USER"), password=os.getenv("PASS"))
-    
-    print("Creating tables...")
-    create_tables(conn)
-
-    print("Loading mappings...")
-    load_mappings(conn)
-
     print("Inserting into raw_articles...")
-    insert_raw_articles(conn, raw_article_rows)
+    await insert_raw_articles(conn, raw_article_rows)
 
     print("Inserting into country_articles...")
-    insert_country_articles(conn, country_article_rows)
+    await insert_country_articles(conn, country_article_rows)
 
-    conn.close()
     print("Done.")
 
 
 if __name__ == "__main__":
-    main()
+    refresh_15min()

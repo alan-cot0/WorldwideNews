@@ -1,7 +1,7 @@
-from io import StringIO
+from io import StringIO, BytesIO, TextIOWrapper
 import csv
-import requests
-import pandas as pd
+import zipfile
+import httpx
 
 EVENT_COLUMNS = [
     "GlobalEventID", "Day", "MonthYear", "Year", "FractionDate", 
@@ -44,9 +44,10 @@ GKG_COLUMNS = [
     "V2.1TRANSLATIONINFO", "V2EXTRASXML"
 ]
 
-def get_update ():
+async def get_update ():
     url = "http://data.gdeltproject.org/gdeltv2/lastupdate.txt"
-    resp = requests.get(url)
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(url)
 
     if (resp.status_code != 200): raise Exception("GDELT API Down")
 
@@ -57,10 +58,44 @@ def get_update ():
     links = [row[2] for row in reader]
     return links
 
+
+async def stream_csv(url: str, cols: list[str]):
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(url)
+
+    if (resp.status_code != 200): raise Exception("GDELT API Down")
+
+    data = BytesIO(resp.content)
+
+    with zipfile.ZipFile(data) as z:
+        files = z.namelist()
+        if (len(files) != 1): raise Exception("Improper CSV Format")
+
+        first = files[0]
+        
+        with z.open(first) as f:
+            text_stream = TextIOWrapper(f, encoding='utf-8')
+            file = csv.DictReader(text_stream, delimiter='\t', fieldnames=cols)
+
+            # Generator
+            for line in file:
+                yield line
+
+
+async def parse_event (url: str):
+    return stream_csv(url, EVENT_COLUMNS)
+
+async def parse_mentions (url: str):
+    return stream_csv(url, MENTIONS_COLUMNS)
+
+async def parse_gkg (url: str):
+    return stream_csv(url, GKG_COLUMNS)
+
 # Parses GDELT 2.0 Event CSV
 # File Format http://data.gdeltproject.org/documentation/GDELT-Event_Codebook-V2.0.pdf
 
-def parse_event (url: str) -> pd.DataFrame:
+def parse_event_df (url: str):
+    import pandas as pd
     df = pd.read_csv(
         url, 
         sep='\\t',
@@ -74,7 +109,8 @@ def parse_event (url: str) -> pd.DataFrame:
 # File Format http://data.gdeltproject.org/documentation/GDELT-Event_Codebook-V2.0.pdf
 # Mentions table records mentions of events in the event table 
 
-def parse_mentions (url: str) -> pd.DataFrame:
+def parse_mentions_df (url: str):
+    import pandas as pd
     df = pd.read_csv(
         url, 
         sep='\\t',
@@ -87,7 +123,8 @@ def parse_mentions (url: str) -> pd.DataFrame:
 # Parses GDELT 2.0 GKG CSV
 # File Format http://data.gdeltproject.org/documentation/GDELT-Global_Knowledge_Graph_Codebook-V2.1.pdf
 
-def parse_gkg (url: str) -> pd.DataFrame:
+def parse_gkg_df (url: str):
+    import pandas as pd
     df = pd.read_csv(
         url, 
         sep='\\t',
