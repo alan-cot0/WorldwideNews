@@ -13,15 +13,13 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
       parserOptions: {
-        ecmaVersion: "latest",
+        ecmaVersion: 'latest',
         ecmaFeatures: { jsx: true },
-        sourceType: "module",
+        sourceType: 'module',
       },
     },
     rules: {
-      "no-unused-vars": ["warn", { varsIgnorePattern: "^[A-Z_]" }],
-      "no-unnecessary-boolean-literal-compare": "warn",
-      "no-unnecessary-condition": "warn",
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
-]);
+])
