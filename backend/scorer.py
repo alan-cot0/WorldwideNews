@@ -28,7 +28,7 @@ def score_articles(df):
 
     richness_raw = df["theme_count"].fillna(0) + df["person_count"].fillna(0)
     df["richness"] = _normalize(richness_raw)
-
+#locality = total source location count/ total location count
     loc_density = df.apply(
         lambda r: r["location_count"] / r["total_location_count"]
         if r["total_location_count"] > 0 else 0.0,
