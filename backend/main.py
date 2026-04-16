@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends
 from contextlib import asynccontextmanager
-from utils.parse_csv import create_tables, load_mappings, refresh_15min
+from utils.parse_csv import clear_tables, create_tables, load_mappings, refresh_15min
 from dotenv import load_dotenv
 import os
 from collections import defaultdict
@@ -16,7 +16,7 @@ load_dotenv()
 DB_URL = "postgresql://localhost/worldwidenews"
 
 # To not request too much from GDELT
-USE_CACHE = True
+USE_CACHE = False
 
 # https://blog.danielclayton.co.uk/posts/database-connections-with-fastapi/
 
@@ -42,6 +42,7 @@ async def lifespan(app: FastAPI):
     await pool.open()
     
     async with pool.connection() as conn:
+        #await clear_tables(conn)
         await create_tables(conn)
         await load_mappings(conn)
         await refresh_15min(conn, USE_CACHE)

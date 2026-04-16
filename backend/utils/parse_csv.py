@@ -289,6 +289,14 @@ async def get_cached ():
 
         for row in reader:
             yield row
+
+async def clear_tables (conn: AsyncConnection):
+    async with conn.cursor() as cur:
+        await cur.execute("TRUNCATE TABLE country_articles;")
+        await cur.execute("TRUNCATE TABLE country_mappings;")
+        await cur.execute("TRUNCATE TABLE country_status;")
+        await cur.execute("TRUNCATE TABLE raw_articles;")
+        await cur.execute("TRUNCATE TABLE top5_cache;")
     
 async def refresh_15min (conn: AsyncConnection, cache: bool):
     
