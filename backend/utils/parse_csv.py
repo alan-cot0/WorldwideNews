@@ -4,6 +4,12 @@ from datetime import datetime, timezone
 from utils.daily import get_update, parse_gkg
 from psycopg import AsyncConnection
 from dotenv import load_dotenv
+from lxml import etree
+from psycopg.rows import dict_row
+from collections import defaultdict
+
+import pandas as pd
+import re
 
 load_dotenv()
 
@@ -28,23 +34,6 @@ def get_country_counts(locations_raw):
             counts[parts[2].strip()] += 1
     return counts
 
-
-def assign_countries(country_counts):
-    if not country_counts:
-        return []
-
-    total = sum(country_counts.values())
-    top_country, top_count = country_counts.most_common(1)[0]
-    confidence = top_count / total
-
-    if confidence >= 0.40:
-        return [(top_country, round(confidence, 4))]
-
-    return [
-        (code, round(count / total, 4))
-        for code, count in country_counts.items()
-        if count / total >= 0.20
-    ]
 
 
 def parse_tone(tone_raw):
@@ -101,6 +90,7 @@ async def load_csv(stream):
         themes = row.get("V1THEMES", "").strip()
         tone = row.get("V1.5TONE", "").strip()
         url = row.get("V2DOCUMENTIDENTIFIER", "").strip()
+        extras = row.get("V2EXTRASXML").strip()
 
         if source_collection != "1":
             continue
@@ -120,79 +110,133 @@ async def load_csv(stream):
             "organizations": row.get("V1ORGANIZATIONS", "").strip() or None,
             "locations_raw": locations,
             "tone_raw": tone,
+            "extras": extras
         })
         
         
 
     return raw_rows
 
+async def get_mappings (conn: AsyncConnection):
+    dictionary = defaultdict()
 
-def build_raw_article_rows(raw_rows):
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute("SELECT domain_name, country_code FROM country_mappings")
+        rows = await cur.fetchall()
+        
+        for row in rows:
+            dictionary[row["domain_name"]] = row["country_code"]
+
+    return dictionary
+
+# source_name to country_code
+def assign_country(source_name, mapping_rows):
+    country_code = mapping_rows[source_name] if source_name in mapping_rows else None
+
+    if (country_code is not None): return country_code
+
+    TLD_TO_COUNTRY = {
+        # North & South America
+        'us': 'US', 'ca': 'CA', 'mx': 'MX', 'br': 'BR', 'ar': 'AR', 
+        'cl': 'CL', 'co': 'CO', 'pe': 'PE',
+        
+        # Europe
+        'uk': 'GB', 'de': 'DE', 'fr': 'FR', 'it': 'IT', 'es': 'ES', 
+        'nl': 'NL', 'be': 'BE', 'ch': 'CH', 'se': 'SE', 'no': 'NO', 
+        'dk': 'DK', 'fi': 'FI', 'pl': 'PL', 'ie': 'IE', 'pt': 'PT', 
+        'gr': 'GR', 'ru': 'RU', 'ua': 'UA', 'ro': 'RO',
+        
+        # Asia & Pacific
+        'cn': 'CN', 'jp': 'JP', 'in': 'IN', 'kr': 'KR', 'id': 'ID', 
+        'ph': 'PH', 'vn': 'VN', 'th': 'TH', 'my': 'MY', 'sg': 'SG', 
+        'tw': 'TW', 'pk': 'PK', 'au': 'AU', 'nz': 'NZ',
+        
+        # Middle East & Africa
+        'za': 'ZA', 'ng': 'NG', 'ke': 'KE', 'eg': 'EG', 'ae': 'AE', 
+        'sa': 'SA', 'il': 'IL', 'tr': 'TR', 'ir': 'IR'
+    }
+
+    match = re.search(r'\.([a-z]{2})(?:/|$)', source_name)
+    
+    if (match is not None):
+        tld = match.group(1)
+        return TLD_TO_COUNTRY[tld] if tld in TLD_TO_COUNTRY else None
+
+
+    return None
+
+def build_raw_article_rows(raw_rows, mapping_rows):
     result = []
     
     for row in raw_rows:
-        country_counts = get_country_counts(row["locations_raw"])
-        assignments = assign_countries(country_counts)
+        country_code = assign_country(row["source_name"], mapping_rows)
 
-        if not assignments:
+        if country_code is None:
             continue
 
-        for country_code, confidence in assignments:
-            result.append((
-                row["url"],
-                country_code,
-                confidence,
-                row["source_name"],
-                row["pub_date"],
-                UPDATE_BATCH,
-                row["themes"],
-                row["persons"],
-                row["organizations"],
-                row["locations_raw"],
-                row["tone_raw"],
-            ))
+        result.append((
+            row["url"],
+            country_code,
+            1.0,
+            row["source_name"],
+            row["pub_date"],
+            UPDATE_BATCH,
+            row["themes"],
+            row["persons"],
+            row["organizations"],
+            row["locations_raw"],
+            row["tone_raw"],
+            row["extras"]
+        ))
+            
 
     return result
 
 
-def build_country_article_rows(raw_rows):
+def build_country_article_rows(raw_rows, mapping_rows):
+
     result = []
     for row in raw_rows:
-        country_counts = get_country_counts(row["locations_raw"])
-        assignments = assign_countries(country_counts)
-
-        if not assignments:
+        country_code = assign_country(row["source_name"], mapping_rows)
+        
+        if country_code is None:
+            print("Unassigned: ", row["source_name"])
             continue
 
         tone, positive_score, negative_score, polarity = parse_tone(row["tone_raw"])
         theme_count = count_semicolon_items(row["themes"])
         person_count = count_semicolon_items(row["persons"])
 
-        for country_code, confidence in assignments:
-            location_count, total_location_count = count_location_mentions(
-                row["locations_raw"], country_code
-            )
+        parser = etree.XMLParser(recover=True)
+        root = etree.fromstring(f"<root>{row["extras"]}</root>", parser=parser)
+        node = root.find("PAGE_TITLE")
 
-            result.append((
-                row["url"],
-                country_code,
-                confidence,
-                row["source_name"],
-                row["pub_date"],
-                UPDATE_BATCH,
-                row["themes"],
-                row["persons"],
-                row["organizations"],
-                row["locations_raw"],
-                tone,
-                positive_score,
-                negative_score,
-                polarity,
-                theme_count,
-                person_count,
-                location_count,
-                total_location_count,
-            ))
+        page_title = node.text if node is not None else None
+
+        total_source_location_count, total_location_count = count_location_mentions(
+            row["locations_raw"], country_code
+        )
+
+        result.append((
+            row["url"],
+            country_code,
+            row["source_name"],
+            row["pub_date"],
+            UPDATE_BATCH,
+            row["themes"],
+            row["persons"],
+            row["organizations"],
+            row["locations_raw"],
+            tone,
+            positive_score,
+            negative_score,
+            polarity,
+            theme_count,
+            person_count,
+            total_source_location_count,
+            total_location_count,
+            page_title
+        ))
 
     return result
 
@@ -202,8 +246,8 @@ async def insert_raw_articles(conn: AsyncConnection, rows):
         INSERT INTO raw_articles (
             url, country_code, country_confidence, source_name,
             pub_date, update_batch, themes, persons, organizations,
-            locations_raw, tone_raw
-        ) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )
+            locations_raw, tone_raw, extras
+        ) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )
         ON CONFLICT (url, country_code) DO UPDATE SET
             country_confidence = EXCLUDED.country_confidence,
             update_batch = EXCLUDED.update_batch,
@@ -218,10 +262,11 @@ async def insert_raw_articles(conn: AsyncConnection, rows):
 async def insert_country_articles(conn: AsyncConnection, rows):
     sql = """
         INSERT INTO country_articles (
-            url, country_code, country_confidence, source_name,
+            url, country_code, source_name,
             pub_date, update_batch, themes, persons, organizations,
             locations_raw, tone, positive_score, negative_score, polarity,
-            theme_count, person_count, location_count, total_location_count
+            theme_count, person_count, total_source_location_count, total_location_count,
+            page_title
         ) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )
         ON CONFLICT (url, country_code) DO UPDATE SET
             tone = EXCLUDED.tone,
@@ -230,9 +275,10 @@ async def insert_country_articles(conn: AsyncConnection, rows):
             polarity = EXCLUDED.polarity,
             theme_count = EXCLUDED.theme_count,
             person_count = EXCLUDED.person_count,
-            location_count = EXCLUDED.location_count,
+            total_source_location_count = EXCLUDED.total_source_location_count,
             total_location_count = EXCLUDED.total_location_count,
-            update_batch = EXCLUDED.update_batch
+            update_batch = EXCLUDED.update_batch,
+            page_title = EXCLUDED.page_title
     """
     async with conn.cursor() as cur:
         await cur.executemany(sql, rows)
@@ -314,10 +360,12 @@ async def refresh_15min (conn: AsyncConnection, cache: bool):
     
     print(f"  {len(raw_rows)} rows passed quality filter")
 
-    raw_article_rows = build_raw_article_rows(raw_rows)
+    mappings = await get_mappings(conn)
+
+    raw_article_rows = build_raw_article_rows(raw_rows, mappings)
     print(f"  {len(raw_article_rows)} raw_article rows (after country assignment)")
 
-    country_article_rows = build_country_article_rows(raw_rows)
+    country_article_rows = build_country_article_rows(raw_rows, mappings)
     print(f"  {len(country_article_rows)} country_article rows")
 
     print("Inserting into raw_articles...")

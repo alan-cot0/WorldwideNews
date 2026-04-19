@@ -4,9 +4,10 @@ import json
 import re
 from datetime import datetime, timezone
 from typing import Any, Optional
+from psycopg import AsyncConnection
 
 import pandas as pd
-from psycopg2.extras import RealDictCursor, execute_values
+from psycopg.rows import dict_row
 
 CACHE_PATH = "top5_cache.json"
 
@@ -129,6 +130,7 @@ def _first_theme_clean(themes):
 
 # Display headline: Tier 1 from URL slug; Tier 2 from persons / themes / both / generic.
 def generate_headline(url, source_name, themes, persons=None):
+    
     # Tier 1: last path segment, hyphens to spaces, title case; accept if len > 15 & not purely numeric
     try:
         path = re.sub(r"https?://[^/]+", "", str(url)).rstrip("/")
@@ -212,7 +214,7 @@ def resolve_weights(
     return (wi, wr, wl)
 
 
-def fetch_country_articles_for_scoring(conn, country_code: str) -> pd.DataFrame:
+async def fetch_country_articles_for_scoring(conn: AsyncConnection) -> pd.DataFrame:
     """
     Load article rows for one country from country_articles (filtered by
     country_code). Locality uses total_source_location_count and
@@ -233,15 +235,23 @@ def fetch_country_articles_for_scoring(conn, country_code: str) -> pd.DataFrame:
         ca.person_count,
         COALESCE(ca.total_source_location_count, 0)::double precision
             AS total_source_location_count,
-        COALESCE(ca.total_location_count, 0)::double precision AS total_location_count
+        COALESCE(ca.total_location_count, 0)::double precision AS total_location_count,
+        ca.page_title,
+        cm.country_name
     FROM country_articles ca
-    WHERE ca.country_code = %s
+    INNER JOIN country_mappings cm ON ca.source_name = cm.domain_name;
     """
-    return pd.read_sql_query(sql, conn, params=[country_code])
 
+    # TODO: Change above to country_status when we get country_status working
 
-def resolve_country_name(conn, country_code: str) -> str:
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(sql)
+        rows = await cur.fetchall()
+
+    return pd.DataFrame(rows)
+
+async def resolve_country_name(conn: AsyncConnection, country_code: str) -> str:
+    async with conn.cursor(row_factory=dict_row) as cur:
         cur.execute(
             "SELECT country_name FROM country_status WHERE country_code = %s",
             (country_code,),
@@ -252,8 +262,8 @@ def resolve_country_name(conn, country_code: str) -> str:
     return country_code
 
 
-def fetch_existing_top5_headlines_by_url(conn, country_code: str) -> dict[str, str]:
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+async def fetch_existing_top5_headlines_by_url(conn: AsyncConnection, country_code: str) -> dict[str, str]:
+    async with conn.cursor(row_factory=dict_row) as cur:
         cur.execute(
             "SELECT url, headline FROM top5_cache WHERE country_code = %s",
             (country_code,),
@@ -262,11 +272,11 @@ def fetch_existing_top5_headlines_by_url(conn, country_code: str) -> dict[str, s
     return {str(r["url"]): str(r["headline"]) for r in rows}
 
 
-def replace_country_top5_cache(conn, country_code: str, rows: list[dict[str, Any]]) -> None:
-    with conn.cursor() as cur:
-        cur.execute("DELETE FROM top5_cache WHERE country_code = %s", (country_code,))
+async def replace_country_top5_cache(conn: AsyncConnection, country_code: str, rows: list[dict[str, Any]]) -> None:
+    async with conn.cursor() as cur:
+        await cur.execute("DELETE FROM top5_cache WHERE country_code = %s", (country_code,))
         if not rows:
-            conn.commit()
+            await conn.commit()
             return
         tuples = [
             (
@@ -283,17 +293,16 @@ def replace_country_top5_cache(conn, country_code: str, rows: list[dict[str, Any
             )
             for r in rows
         ]
-        execute_values(
-            cur,
+        await cur.executemany(
             """
             INSERT INTO top5_cache (
                 country_code, rank, url, headline, relevancy_score,
                 country_name, source_name, themes, last_updated, is_cached
-            ) VALUES %s
+            ) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )
             """,
             tuples,
         )
-    conn.commit()
+    await conn.commit()
 
 
 def _rows_for_top5(
@@ -308,13 +317,19 @@ def _rows_for_top5(
         rank = i + 1
         url = str(row["url"])
         headline = headlines_by_url.get(url)
+
         if headline is None:
-            headline = generate_headline(
-                row["url"],
-                row.get("source_name"),
-                row.get("themes"),
-                persons=row.get("persons"),
-            )
+            if (row["page_title"] is not None):
+                headline = row["page_title"]
+            
+            else:
+                headline = generate_headline(
+                    row["url"],
+                    row.get("source_name"),
+                    row.get("themes"),
+                    persons=row.get("persons"),
+                )
+            
         out.append(
             {
                 "country_code": country_code,
@@ -332,47 +347,43 @@ def _rows_for_top5(
     return out
 
 
-def populate_top5_for_country(
-    conn,
-    country_code: str,
-    weight_intensity: Optional[float] = None,
-    weight_richness: Optional[float] = None,
-    weight_locality: Optional[float] = None,
-) -> bool:
-    """
-    Score articles for one country; null/NaN weights use defaults (per component).
-    Generate headlines for all top-5 rows; replace top5_cache (per-row last_updated).
-    Returns False if fewer than five articles (does not clear existing cache).
-    """
-    df = fetch_country_articles_for_scoring(conn, country_code)
-    if len(df) < 5:
-        return False
-    wi, wr, wl = resolve_weights(weight_intensity, weight_richness, weight_locality)
-    scored = score_articles(
-        df, weight_intensity=wi, weight_richness=wr, weight_locality=wl
-    )
-    top5 = select_top5(scored)
-    if not top5:
-        return False
-    country_name = resolve_country_name(conn, country_code)
-    rows = _rows_for_top5(country_code, country_name, top5, {})
-    replace_country_top5_cache(conn, country_code, rows)
-    return True
-
-
-def populate_top5_all_countries(conn) -> dict[str, bool]:
+async def populate_top5_all_countries(conn: AsyncConnection) -> dict[str, bool]:
     """
     Run populate_top5_for_country for every distinct country_code in
     country_articles (each must have at least five rows or it is skipped).
     """
-    codes = pd.read_sql_query(
-        "SELECT DISTINCT country_code FROM country_articles",
-        conn,
-    )["country_code"].tolist()
+    df = await fetch_country_articles_for_scoring(conn)
+
     result: dict[str, bool] = {}
-    for cc in codes:
-        result[str(cc)] = populate_top5_for_country(conn, str(cc))
+
+    for country_code, group in df.groupby("country_code"):
+        if (len(group) < 5):
+            result[country_code] = False
+            continue
+            
+        wi, wr, wl = resolve_weights()
+
+        scored = score_articles(
+            group, weight_intensity=wi, weight_richness=wr, weight_locality=wl
+        )
+
+        top5 = select_top5(scored)
+
+        if not top5:
+            result[country_code] = False
+            continue
+        
+        #print(top5)
+        country_name = group.iloc[0]["country_name"]
+
+        rows = _rows_for_top5(country_code, country_name, top5, {})
+
+        await replace_country_top5_cache(conn, country_code, rows)
+
+        result[country_code] = True
+
     return result
+
 
 
 def update_country_scoring_db(
@@ -411,12 +422,15 @@ def update_country_scoring_db(
         if u in old_headlines:
             merged[u] = old_headlines[u]
         else:
-            merged[u] = generate_headline(
-                row["url"],
-                row.get("source_name"),
-                row.get("themes"),
-                persons=row.get("persons"),
-            )
+            if (row["page_title"] is not None):
+                merged[u] = row["page_title"]
+            else:
+                merged[u] = generate_headline(
+                    row["url"],
+                    row.get("source_name"),
+                    row.get("themes"),
+                    persons=row.get("persons"),
+                )
     rows = _rows_for_top5(country_code, country_name, top5, merged)
     replace_country_top5_cache(conn, country_code, rows)
     return True
