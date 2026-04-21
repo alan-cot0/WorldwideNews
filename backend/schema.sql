@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS country_status (
     country_name TEXT,
     last_fresh_update TIMESTAMP,
     article_count INTEGER,
+    total_source_location_count BIGINT,
     status TEXT
 );
 
