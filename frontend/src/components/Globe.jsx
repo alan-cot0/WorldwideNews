@@ -104,8 +104,8 @@ const Globe = () => {
 
         projection.current.translate([w / 2, h / 2]);
         // console.log("current scale", projection.current.scale());
-        if (zoomState.current === ZState.NotZoomed && projection.current.scale() > 900)
-            lowRes = false; //if zoomed in, override to high res
+        // if (zoomState.current === ZState.NotZoomed && projection.current.scale() > 900)
+        //     lowRes = false; //if zoomed in, override to high res
 
         //d3 function that converts coordinates to canvas shapes
         const path = d3.geoPath(projection.current, context);
