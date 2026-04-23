@@ -332,6 +332,47 @@ async def create_tables(conn: AsyncConnection):
     
     await conn.commit()
 
+
+async def refresh_country_status(conn: AsyncConnection):#added this(aryan)
+    """Aggregate country_articles into country_status (incl. total source location counts)."""
+    sql = """
+        INSERT INTO country_status (
+            country_code, country_name, last_fresh_update,
+            article_count, total_source_location_count, status
+        )
+        SELECT
+            agg.country_code,
+            cm.country_name,
+            agg.last_fresh_update,
+            agg.article_count,
+            agg.total_source_location_count,
+            'ok'
+        FROM (
+            SELECT
+                ca.country_code,
+                MAX(ca.update_batch) AS last_fresh_update,
+                COUNT(*)::INTEGER AS article_count,
+                COALESCE(SUM(ca.total_source_location_count), 0)::BIGINT
+                    AS total_source_location_count
+            FROM country_articles ca
+            GROUP BY ca.country_code
+        ) agg
+        LEFT JOIN (
+            SELECT country_code, MAX(country_name) AS country_name
+            FROM country_mappings
+            GROUP BY country_code
+        ) cm ON cm.country_code = agg.country_code
+        ON CONFLICT (country_code) DO UPDATE SET
+            country_name = EXCLUDED.country_name,
+            last_fresh_update = EXCLUDED.last_fresh_update,
+            article_count = EXCLUDED.article_count,
+            total_source_location_count = EXCLUDED.total_source_location_count,
+            status = EXCLUDED.status;
+    """
+    async with conn.cursor() as cur:
+        await cur.execute(sql)
+    await conn.commit()
+
 async def get_cached ():
     with open_csv("data/gkg.csv") as f:
         reader = csv.DictReader(f)
@@ -376,6 +417,9 @@ async def refresh_15min (conn: AsyncConnection, cache: bool):
 
     print("Inserting into country_articles...")
     await insert_country_articles(conn, country_article_rows)
+
+    print("Refreshing country_status...")
+    await refresh_country_status(conn)
 
     print("Done.")
 
