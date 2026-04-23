@@ -1,5 +1,5 @@
 # WorldWide News
-Description TBA
+A web application that allows users to click on any country in the world and take a look at the most popular news articles from that country. Users can change various relevancy parameters to configure the different types of news they are interested in seeing. All news articles are sourced from the GDELT 2.0 API.
 
 ## Setup / Running
 
