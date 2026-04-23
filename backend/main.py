@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from utils.parse_csv import clear_tables, create_tables, load_mappings, refresh_15min
 from utils.scorer import populate_top5_all_countries
@@ -55,12 +56,23 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+allowed_origins = [
+    "http://localhost", 
+    "http://localhost:5173"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 @app.get("/")
 async def root():
     return {"message": "Hello from FastAPI"}
-
-
-
 
 
 # Not finalized, just something for

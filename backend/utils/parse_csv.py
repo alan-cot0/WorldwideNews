@@ -130,6 +130,10 @@ async def get_mappings (conn: AsyncConnection):
     return dictionary
 
 # source_name to country_code
+# First use the mappings dataset: gdelt-bq.extra.sourcesbycountry.csv
+# Otherwise, use TLD to FIPS Code
+# Otherwise, use wikidata as most of these websites can be found from wikidata
+
 def assign_country(source_name, mapping_rows):
     country_code = mapping_rows[source_name] if source_name in mapping_rows else None
 
@@ -138,22 +142,22 @@ def assign_country(source_name, mapping_rows):
     TLD_TO_COUNTRY = {
         # North & South America
         'us': 'US', 'ca': 'CA', 'mx': 'MX', 'br': 'BR', 'ar': 'AR', 
-        'cl': 'CL', 'co': 'CO', 'pe': 'PE',
+        'cl': 'CI', 'co': 'CO', 'pe': 'PE',
         
         # Europe
-        'uk': 'GB', 'de': 'DE', 'fr': 'FR', 'it': 'IT', 'es': 'ES', 
-        'nl': 'NL', 'be': 'BE', 'ch': 'CH', 'se': 'SE', 'no': 'NO', 
-        'dk': 'DK', 'fi': 'FI', 'pl': 'PL', 'ie': 'IE', 'pt': 'PT', 
-        'gr': 'GR', 'ru': 'RU', 'ua': 'UA', 'ro': 'RO',
+        'uk': 'UK', 'de': 'GM', 'fr': 'FR', 'it': 'IT', 'es': 'SP', 
+        'nl': 'NL', 'be': 'BE', 'ch': 'SZ', 'se': 'SW', 'no': 'NO', 
+        'dk': 'DA', 'fi': 'FI', 'pl': 'PL', 'ie': 'EI', 'pt': 'PO', 
+        'gr': 'GR', 'ru': 'RS', 'ua': 'UP', 'ro': 'RO',
         
         # Asia & Pacific
-        'cn': 'CN', 'jp': 'JP', 'in': 'IN', 'kr': 'KR', 'id': 'ID', 
-        'ph': 'PH', 'vn': 'VN', 'th': 'TH', 'my': 'MY', 'sg': 'SG', 
-        'tw': 'TW', 'pk': 'PK', 'au': 'AU', 'nz': 'NZ',
+        'cn': 'CH', 'jp': 'JA', 'in': 'IN', 'kr': 'KS', 'id': 'ID', 
+        'ph': 'RP', 'vn': 'VM', 'th': 'TH', 'my': 'MY', 'sg': 'SN', 
+        'tw': 'TW', 'pk': 'PK', 'au': 'AS', 'nz': 'NZ',
         
         # Middle East & Africa
-        'za': 'ZA', 'ng': 'NG', 'ke': 'KE', 'eg': 'EG', 'ae': 'AE', 
-        'sa': 'SA', 'il': 'IL', 'tr': 'TR', 'ir': 'IR'
+        'za': 'SF', 'ng': 'NI', 'ke': 'KE', 'eg': 'EG', 'ae': 'AE', 
+        'sa': 'SA', 'il': 'IS', 'tr': 'TU', 'ir': 'IR'
     }
 
     match = re.search(r'\.([a-z]{2})(?:/|$)', source_name)
@@ -161,7 +165,6 @@ def assign_country(source_name, mapping_rows):
     if (match is not None):
         tld = match.group(1)
         return TLD_TO_COUNTRY[tld] if tld in TLD_TO_COUNTRY else None
-
 
     return None
 
