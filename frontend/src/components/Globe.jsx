@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback, forceUpdate } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import * as d3 from "d3";
 
 // This is the dataset that holds the country boundaries and globe data
@@ -19,7 +19,7 @@ const ZState = Object.freeze({
 const INITIAL_SCALE = 300;
 
 const Globe = () => {
-    // console.log("react rendering globe component");
+    console.log("react rendering globe component");
     const canvasRef = useRef(null);
     // const goBackButtonRef = useRef(null);
     const [displayGoBack, setDisplayGoBack] = useState(false);
@@ -251,7 +251,7 @@ const Globe = () => {
                 hoveredCountry.current = country;
                 // console.log("changing country hover");
                 render(true);
-                timer.restart((t) => {
+                timer.restart(() => {
                     render(false);
                     timer.stop();
                     console.log("timer stopped");
@@ -350,6 +350,7 @@ const Globe = () => {
             .end().finally(() => {
                 activeCountry.current = null;
                 zoomState.current = ZState.NotZoomed;
+                render(false);
             });
     }, [render, targetZoom]);
 
@@ -365,6 +366,7 @@ const Globe = () => {
                         top: "80px",
                         left: "50%",
                         transform: "translateX(-50%)",
+                        color: "black",
                         background: "white",
                         border: "2px solid black",
                         padding: "10px 20px",
