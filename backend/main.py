@@ -1,6 +1,8 @@
 from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from utils.parse_csv import create_tables, load_mappings, refresh_15min
+from utils.parse_csv import clear_tables, create_tables, load_mappings, refresh_15min
+from utils.scorer import populate_top5_all_countries
 from dotenv import load_dotenv
 import os
 from collections import defaultdict
@@ -43,8 +45,10 @@ async def lifespan(app: FastAPI):
     
     async with pool.connection() as conn:
         await create_tables(conn)
+        await clear_tables(conn)
         await load_mappings(conn)
         await refresh_15min(conn, USE_CACHE)
+        await populate_top5_all_countries(conn)
         
     yield
 
@@ -52,17 +56,24 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+allowed_origins = [
+    "http://localhost", 
+    "http://localhost:5173"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 @app.get("/")
 async def root():
     return {"message": "Hello from FastAPI"}
 
-
-
-# Will be useful in future
-@dataclass
-class Article:
-    domain: str
-    url: str
 
 # Not finalized, just something for
 # the frontend to play around with
@@ -70,9 +81,9 @@ class Article:
 @app.get("/api/countries")
 async def get_countries(conn: AsyncConnection = Depends(get_conn)):
     sql = """
-        SELECT CA.url, CA.source_name, CA.country_code
-        FROM country_articles CA, country_mappings CM
-        WHERE CA.source_name = CM.domain_name;
+        SELECT country_code, rank, url, headline,
+        relevancy_score, themes, last_updated
+        FROM top5_cache;
     """
 
     async with conn.cursor(row_factory=dict_row) as cur:
@@ -84,8 +95,24 @@ async def get_countries(conn: AsyncConnection = Depends(get_conn)):
 
         for row in rows:
             data[row["country_code"]].append(
-                asdict(Article(row["source_name"], row["url"]))
+                row
             )
 
 
         return data
+
+@app.get("/api/news/{country_code}")
+async def get_country(country_code: str, conn: AsyncConnection = Depends(get_conn)):
+    sql = """
+        SELECT country_code, rank, url, headline,
+        relevancy_score, themes, last_updated
+        FROM top5_cache
+        WHERE country_code = (%s);
+    """
+
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(sql, (country_code,))
+        rows = await cur.fetchall()
+        
+        return rows
+    

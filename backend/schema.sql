@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS raw_articles (
     organizations TEXT,
     locations_raw TEXT,
     tone_raw TEXT,
+    extras TEXT,
     UNIQUE (url, country_code)
 );
 
@@ -19,7 +20,6 @@ CREATE INDEX IF NOT EXISTS idx_raw_batch ON raw_articles (update_batch);
 CREATE TABLE IF NOT EXISTS country_articles (
     url TEXT NOT NULL,
     country_code CHAR(2) NOT NULL,
-    country_confidence REAL,
     source_name TEXT,
     pub_date TIMESTAMP,
     update_batch TIMESTAMP,
@@ -33,8 +33,9 @@ CREATE TABLE IF NOT EXISTS country_articles (
     polarity REAL,
     theme_count INTEGER,
     person_count INTEGER,
-    location_count INTEGER,
+    total_source_location_count INTEGER,
     total_location_count INTEGER,
+    page_title TEXT,
     UNIQUE (url, country_code)
 );
 
@@ -59,6 +60,7 @@ CREATE TABLE IF NOT EXISTS country_status (
     country_name TEXT,
     last_fresh_update TIMESTAMP,
     article_count INTEGER,
+    total_source_location_count BIGINT,
     status TEXT
 );
 
