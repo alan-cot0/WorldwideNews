@@ -12,7 +12,7 @@
 /* ── Outer shell — only the WIDTH transitions ───────────── */
 .side-panel {
     flex-shrink: 0;
-    position: relative;
+    position: absolute;
     width: var(--sp-peek);      /* "peek" state — toggle is always visible */
     height: 100%;
     background-color: var(--sp-bg);
