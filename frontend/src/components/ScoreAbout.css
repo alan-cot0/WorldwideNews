@@ -1,0 +1,48 @@
+.ScoreAbout-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #16213e;
+    z-index: 9999;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #0f3460 transparent;
+}
+
+.ScoreAbout-close {
+    position: fixed;
+    top: 16px;
+    right: 24px;
+    background: none;
+    border: none;
+    color: #cdd3e0;
+    font-size: 2.5rem;
+    cursor: pointer;
+    z-index: 10000;
+}
+
+.ScoreAbout-close:hover {
+    color: #fff;
+}
+
+.ScoreAbout-body {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 60px 32px 40px;
+}
+
+.ScoreAbout-title {
+    color: #fff;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin: 0 0 24px;
+}
+
+.ScoreAbout-text {
+    color: #cdd3e0;
+    font-size: 1.2rem;
+    line-height: 1.6;
+}

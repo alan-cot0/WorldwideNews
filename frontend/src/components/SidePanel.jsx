@@ -316,8 +316,8 @@ function SidePanelContent({ selectedCountry }) {
     );
 }
 
-function SidePanel({ selectedCountry }) {
-    const [isOpen, setIsOpen] = useState(false);
+function SidePanel({ isOpen, setIsOpen, selectedCountry }) {
+    //const [isOpen, setIsOpen] = useState(false);
 
     return (
         <aside className={`side-panel${isOpen ? " side-panel--open" : ""}`} aria-label="Side panel">
@@ -330,7 +330,7 @@ function SidePanel({ selectedCountry }) {
             {/* Toggle tab — always visible at the right edge of the panel */}
             <button
                 className="side-panel__toggle"
-                onClick={() => setIsOpen(v => !v)}
+                onClick={() => setIsOpen(!isOpen)}
                 aria-label={isOpen ? "Collapse panel" : "Expand panel"}
                 aria-expanded={isOpen}
             >

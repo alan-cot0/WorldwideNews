@@ -1,21 +1,28 @@
+import React, { useState } from "react";
 import "./App.css";
 import Globe from "./components/Globe";
 import Navbar from "./components/Navbar";
 import SidePanel from "./components/SidePanel";
 import TransparencySidePanel from "./components/TransparencySidePanel";
-import { useState } from "react";
+//import { useState } from "react";
 
 
 function App() {
     const [selectedCountry, setSelectedCountry] = useState(null);
+
+    const [isOpen, setIsOpen] = useState(false);
+
     return (
         <>
             <Navbar />
             <main className="app-main">
-                <SidePanel selectedCountry={selectedCountry} />
+
+                <SidePanel isOpen={isOpen} setIsOpen={setIsOpen} selectedCountry={selectedCountry} />
 
                 <div className="globe-wrapper">
-                    <Globe setSelectedCountry={setSelectedCountry} />
+                    <Globe onCountryClick={() => setIsOpen(true)}
+                    onBackToGlobe={() => setIsOpen(false)} 
+                    setSelectedCountry={setSelectedCountry} />
                 </div>
 
                 <TransparencySidePanel />
