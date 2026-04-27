@@ -18,7 +18,7 @@ const ZState = Object.freeze({
 // initial globe size
 const INITIAL_SCALE = 300;
 
-const Globe = () => {
+const Globe = ({setSelectedCountry}) => {
     // console.log("react rendering globe component");
     const canvasRef = useRef(null);
     // const goBackButtonRef = useRef(null);
@@ -277,6 +277,8 @@ const Globe = () => {
 
             //if its in a country, choose that country
             activeCountry.current = country;
+            console.log("active country", activeCountry.current.properties.name);
+            setSelectedCountry(activeCountry.current.properties.name);
             setDisplayGoBack(true);
 
             //toggle being zoomed in
@@ -365,7 +367,7 @@ const Globe = () => {
                         top: "80px",
                         left: "50%",
                         transform: "translateX(-50%)",
-                        background: "white",
+                        // background: "white",
                         border: "2px solid black",
                         padding: "10px 20px",
                         cursor: "pointer",
