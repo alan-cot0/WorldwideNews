@@ -1,64 +1,118 @@
-import os
-from contextlib import asynccontextmanager
-
-from apscheduler.schedulers.background import BackgroundScheduler
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+from utils.parse_csv import clear_tables, create_tables, load_mappings, refresh_15min
+from utils.scorer import populate_top5_all_countries
+from dotenv import load_dotenv
+import os
+from collections import defaultdict
+from dataclasses import dataclass, asdict
 
-from pipeline import run_pipeline
-from scorer import load_cache, CACHE_PATH
 
+from psycopg_pool import AsyncConnectionPool
+from psycopg import AsyncConnection
+from psycopg.rows import dict_row
 
-# Run pipeline on startup if no cache exists, then every 12 hours
+load_dotenv()
+
+DB_URL = "postgresql://localhost/worldwidenews"
+
+# To not request too much from GDELT
+USE_CACHE = True
+
+# https://blog.danielclayton.co.uk/posts/database-connections-with-fastapi/
+
+pool = AsyncConnectionPool(
+    conninfo=DB_URL,
+    min_size=1,
+    max_size=4, # Don't make too many
+    kwargs={
+        "user": os.getenv("USER"),
+        "password": os.getenv("PASS")
+    },
+    open = False
+)
+
+async def get_conn():
+    async with pool.connection() as conn:
+	    yield conn
+         
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(run_pipeline, "interval", hours=12)
-    scheduler.start()
-
-    if not os.path.exists(CACHE_PATH):
-        run_pipeline()
-
+    
+    await pool.open()
+    
+    async with pool.connection() as conn:
+        await create_tables(conn)
+        await clear_tables(conn)
+        await load_mappings(conn)
+        await refresh_15min(conn, USE_CACHE)
+        await populate_top5_all_countries(conn)
+        
     yield
-    scheduler.shutdown()
 
+    await pool.close()
 
 app = FastAPI(lifespan=lifespan)
 
+allowed_origins = [
+    "http://localhost", 
+    "http://localhost:5173"
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["GET"],
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-# Returns top 5 articles for a given 2-letter country code
-@app.get("/api/news/{country_code}")
-async def get_news(country_code: str):
-    try:
-        cache = load_cache()
-    except FileNotFoundError:
-        raise HTTPException(status_code=503, detail="Pipeline has not run yet")
-
-    articles = cache.get(country_code.upper())
-    if not articles:
-        raise HTTPException(status_code=404, detail="No data for this country")
-
-    return {"country_code": country_code.upper(), "articles": articles}
+@app.get("/")
+async def root():
+    return {"message": "Hello from FastAPI"}
 
 
-# Returns all country codes that have data in the cache
+# Not finalized, just something for
+# the frontend to play around with
+
 @app.get("/api/countries")
-async def get_countries():
-    try:
-        cache = load_cache()
-    except FileNotFoundError:
-        raise HTTPException(status_code=503, detail="Pipeline has not run yet")
+async def get_countries(conn: AsyncConnection = Depends(get_conn)):
+    sql = """
+        SELECT country_code, rank, url, headline,
+        relevancy_score, themes, last_updated
+        FROM top5_cache;
+    """
 
-    return {
-        "countries": [
-            {"country_code": code, "article_count": len(articles)}
-            for code, articles in cache.items()
-        ]
-    }
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(sql)
+
+        rows = await cur.fetchall()
+
+        data = defaultdict(list)
+
+        for row in rows:
+            data[row["country_code"]].append(
+                row
+            )
+
+
+        return data
+
+@app.get("/api/news/{country_code}")
+async def get_country(country_code: str, conn: AsyncConnection = Depends(get_conn)):
+    sql = """
+        SELECT country_code, rank, url, headline,
+        relevancy_score, themes, last_updated
+        FROM top5_cache
+        WHERE country_code = (%s);
+    """
+
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(sql, (country_code,))
+        rows = await cur.fetchall()
+        
+        return rows
+    

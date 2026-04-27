@@ -1,0 +1,168 @@
+/* AI GENERATED: https://genai.umass.edu/share/qZzhcGQtJ0F2o79SdiI1F */
+/* ========== Img ========== */
+img {
+    margin:5px;
+}
+
+/* ========== Navbar Wrapper ========== */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    background-color: #1a1a2e;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* ========== Inner Container ========== */
+.navbar-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* max-width: 1200px; */
+    /* margin: 0 auto; */
+    padding: 0 24px;
+    height: 64px;
+}
+
+/* ========== Top Left Container ========== */
+.logo-container {
+    display: flex;
+    align-items: left;
+    justify-content: space-between;
+    /* max-width: 1200px; */
+    /* margin: 0 auto; */
+    padding: 0 24px;
+    height: 64px;
+}
+
+/* ========== Logo / Brand ========== */
+.navbar-logo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #e94560;
+    text-decoration: none;
+    letter-spacing: 1px;
+    transition: opacity 0.3s;
+}
+
+.navbar-tagline {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #ffffff;
+    text-decoration: none;
+    letter-spacing: 1px;
+    transition: opacity 0.3s;
+    margin:0px
+
+}
+
+.navbar-logo:hover {
+    opacity: 0.8;
+}
+
+/* ========== Nav Links ========== */
+.nav-links {
+    list-style: none;
+    display: flex;
+    gap: 32px;
+    margin: 0;
+    padding: 0;
+}
+
+.nav-links li a {
+    text-decoration: none;
+    color: #eee;
+    font-size: 1rem;
+    font-weight: 500;
+    position: relative;
+    padding: 4px 0;
+    transition: color 0.3s;
+}
+
+/* Animated underline on hover */
+.nav-links li a::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0%;
+    height: 2px;
+    background-color: #e94560;
+    transition: width 0.3s ease;
+}
+
+.nav-links li a:hover {
+    color: #e94560;
+}
+
+.nav-links li a:hover::after {
+    width: 100%;
+}
+
+/* ========== Hamburger Button ========== */
+.hamburger {
+    display: none;
+    /* hidden on desktop */
+    flex-direction: column;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+}
+
+.hamburger .bar {
+    display: block;
+    width: 25px;
+    height: 3px;
+    background-color: #eee;
+    border-radius: 2px;
+    transition: transform 0.3s, opacity 0.3s;
+}
+
+/* Animate bars into an "X" when active */
+.hamburger.active .bar:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+}
+
+.hamburger.active .bar:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger.active .bar:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+}
+
+/* ========== Responsive (mobile) ========== */
+@media (max-width: 768px) {
+    .hamburger {
+        display: flex;
+    }
+
+    .nav-links {
+        /* Off-screen by default */
+        position: absolute;
+        top: 64px;
+        left: 0;
+        width: 100%;
+        flex-direction: column;
+        gap: 0;
+        background-color: #16213e;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s ease;
+    }
+
+    .nav-links.open {
+        max-height: 300px;
+        /* enough to fit all items */
+    }
+
+    .nav-links li a {
+        display: block;
+        padding: 16px 24px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+}

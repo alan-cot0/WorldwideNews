@@ -1,5 +1,5 @@
 # WorldWide News
-Description TBA
+A web application that allows users to click on any country in the world and take a look at the most popular news articles from that country. Users can change various relevancy parameters to configure the different types of news they are interested in seeing. All news articles are sourced from the GDELT 2.0 API.
 
 ## Setup / Running
 
@@ -21,9 +21,15 @@ pip3 install psycopg2-binary
 python3 parse_csv.py
 ```
 
-The script expects `gkg.csv` to be in the root of the repo. It populates two tables:
+The script expects `data/gkg.csv` to be in the root of the repo. It populates two tables:
 - `raw_articles` — quality-filtered GKG rows with country assignment
 - `country_articles` — same rows with computed tone/count fields for relevancy scoring
+
+The script expects `.env` file to be present in the backend folder. In should look like the following:
+```
+USER=youruser
+PASS=yourpass
+```
 
 ### Backend
 ```
