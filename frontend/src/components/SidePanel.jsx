@@ -244,35 +244,35 @@ function LoadNewsForCountry({ selectedCountry }) {
         setArticles([]);
 
         fetch(`http://127.0.0.1:8000/api/news/${countryToFips[selectedCountry]}`)
-            .then((response) => {
+            .then(response => {
                 if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
                 return response.json();
             })
-            .then((data) => {
+            .then(data => {
                 setArticles(data);
                 setLoading(false);
             })
-            .catch((err) => {
+            .catch(err => {
                 setError(err.message);
                 setLoading(false);
             });
     }, [selectedCountry]);
 
     if (loading) return <p className="side-panel__status">Loading news...</p>;
-    if (error)   return <p className="side-panel__status">Failed to load news: {error}</p>;
+    if (error) return <p className="side-panel__status">Failed to load news: {error}</p>;
     if (articles.length === 0) return <p className="side-panel__status">No articles found for this country.</p>;
 
     return (
         <table className="side-panel__news-table">
             <thead>
                 <tr>
-                    <th>#</th>
+                    <th>Rank</th>
                     <th>Headline</th>
                     <th>Source</th>
                 </tr>
             </thead>
             <tbody>
-                {articles.map((article) => (
+                {articles.map(article => (
                     <tr key={article.rank}>
                         <td>{article.rank}</td>
                         <td>
@@ -285,7 +285,15 @@ function LoadNewsForCountry({ selectedCountry }) {
                                 {article.headline}
                             </a>
                         </td>
-                        <td>{new URL(article.url).hostname}</td>
+                        <td>
+                            <a
+                                href={"https://" + new URL(article.url).hostname}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="side-panel__news-link">
+                                    {new URL(article.url).hostname}
+                            </a>
+                        </td>
                     </tr>
                 ))}
             </tbody>
@@ -300,7 +308,7 @@ function SidePanelContent({ selectedCountry }) {
             <div className="side-panel__content">
                 <LoadNewsForCountry selectedCountry={selectedCountry} />
             </div>{" "}
-            <h3 className="side-panel__heading">Intensity</h3>
+            {/* <h3 className="side-panel__heading">Intensity</h3>
             <div className="side-panel__content">
                 <input type="range"></input>
             </div>
@@ -311,7 +319,7 @@ function SidePanelContent({ selectedCountry }) {
             <h3 className="side-panel__heading">Locality</h3>
             <div className="side-panel__content">
                 <input type="range"></input>
-            </div>
+            </div> */}
         </>
     );
 }
