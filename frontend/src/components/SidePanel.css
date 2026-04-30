@@ -55,6 +55,39 @@
     line-height: 1.6;
 }
 
+.side-panel__controls {
+    display: grid;
+    gap: 14px;
+    margin-top: 18px;
+    color: #cdd3e0;
+}
+
+.side-panel__slider {
+    display: grid;
+    gap: 8px;
+}
+
+.side-panel__slider-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.side-panel__slider input {
+    width: 100%;
+    accent-color: #7eb8f7;
+}
+
+.side-panel__slider input:disabled {
+    opacity: 0.45;
+}
+
 /* ── Toggle tab ─────────────────────────────────────────── */
 /*
  * Sits at the right edge of the panel.

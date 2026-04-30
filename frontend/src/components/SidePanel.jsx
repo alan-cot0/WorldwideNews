@@ -232,32 +232,14 @@ const countryToFips = {
     Antarctica: "AY",
 };
 
-// AI GENERATED: https://genai.umass.edu/share/MvjIEppqjGUUiJqtCbIub
-function LoadNewsForCountry({ selectedCountry }) {
-    const [articles, setArticles] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+const API_BASE_URL = "http://127.0.0.1:8000";
+const DEFAULT_WEIGHTS = {
+    weight_intensity: 0.4,
+    weight_richness: 0.3,
+    weight_locality: 0.3,
+};
 
-    useEffect(() => {
-        setLoading(true);
-        setError(null);
-        setArticles([]);
-
-        fetch(`http://127.0.0.1:8000/api/news/${countryToFips[selectedCountry]}`)
-            .then(response => {
-                if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
-                return response.json();
-            })
-            .then(data => {
-                setArticles(data);
-                setLoading(false);
-            })
-            .catch(err => {
-                setError(err.message);
-                setLoading(false);
-            });
-    }, [selectedCountry]);
-
+function NewsTable({ articles, loading, error }) {
     if (loading) return <p className="side-panel__status">Loading news...</p>;
     if (error) return <p className="side-panel__status">Failed to load news: {error}</p>;
     if (articles.length === 0) return <p className="side-panel__status">No articles found for this country.</p>;
@@ -266,13 +248,13 @@ function LoadNewsForCountry({ selectedCountry }) {
         <table className="side-panel__news-table">
             <thead>
                 <tr>
-                    <th>Rank</th>
+                    <th>#</th>
                     <th>Headline</th>
                     <th>Source</th>
                 </tr>
             </thead>
             <tbody>
-                {articles.map(article => (
+                {articles.map((article) => (
                     <tr key={article.rank}>
                         <td>{article.rank}</td>
                         <td>
@@ -285,41 +267,140 @@ function LoadNewsForCountry({ selectedCountry }) {
                                 {article.headline}
                             </a>
                         </td>
-                        <td>
-                            <a
-                                href={"https://" + new URL(article.url).hostname}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="side-panel__news-link">
-                                    {new URL(article.url).hostname}
-                            </a>
-                        </td>
+                        <td>{article.source_name || new URL(article.url).hostname}</td>
                     </tr>
                 ))}
             </tbody>
         </table>
     );
 }
+
+function WeightSlider({ label, value, onChange, disabled }) {
+    return (
+        <label className="side-panel__slider">
+            <span className="side-panel__slider-label">
+                {label}
+                <span>{Math.round(value * 100)}%</span>
+            </span>
+            <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={value}
+                disabled={disabled}
+                onChange={(event) => onChange(Number(event.target.value))}
+            />
+        </label>
+    );
+}
+
+// AI GENERATED: https://genai.umass.edu/share/MvjIEppqjGUUiJqtCbIub
 function SidePanelContent({ selectedCountry }) {
+    const [articles, setArticles] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [updating, setUpdating] = useState(false);
+    const [error, setError] = useState(null);
+    const [weights, setWeights] = useState(DEFAULT_WEIGHTS);
+    const [hasUserChangedWeights, setHasUserChangedWeights] = useState(false);
+    const countryCode = countryToFips[selectedCountry];
+
+    useEffect(() => {
+        if (!countryCode) {
+            setArticles([]);
+            setError("No country code is mapped for this location.");
+            setLoading(false);
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+        setArticles([]);
+        setWeights(DEFAULT_WEIGHTS);
+        setHasUserChangedWeights(false);
+
+        fetch(`${API_BASE_URL}/api/news/${countryCode}`)
+            .then((response) => {
+                if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                setArticles(data);
+                setLoading(false);
+            })
+            .catch((err) => {
+                setError(err.message);
+                setLoading(false);
+            });
+    }, [countryCode]);
+
+    useEffect(() => {
+        if (!countryCode || loading || !hasUserChangedWeights) return;
+
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => {
+            setUpdating(true);
+            setError(null);
+
+            fetch(`${API_BASE_URL}/api/scoring/${countryCode}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(weights),
+                signal: controller.signal,
+            })
+                .then((response) => {
+                    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+                    return response.json();
+                })
+                .then((data) => {
+                    setArticles(data.articles || []);
+                    setUpdating(false);
+                })
+                .catch((err) => {
+                    if (err.name === "AbortError") return;
+                    setError(err.message);
+                    setUpdating(false);
+                });
+        }, 400);
+
+        return () => {
+            controller.abort();
+            window.clearTimeout(timeout);
+        };
+    }, [countryCode, weights, loading, hasUserChangedWeights]);
+
+    const setWeight = (key, value) => {
+        setHasUserChangedWeights(true);
+        setWeights((current) => ({ ...current, [key]: value }));
+    };
+
     return (
         <>
             <h3 className="side-panel__heading">News in </h3>
             <h2 className="side-panel__heading">{selectedCountry} </h2>
             <div className="side-panel__content">
-                <LoadNewsForCountry selectedCountry={selectedCountry} />
-            </div>{" "}
-            {/* <h3 className="side-panel__heading">Intensity</h3>
-            <div className="side-panel__content">
-                <input type="range"></input>
+                <NewsTable articles={articles} loading={loading || updating} error={error} />
             </div>
-            <h3 className="side-panel__heading">Richness</h3>
-            <div className="side-panel__content">
-                <input type="range"></input>
+            <div className="side-panel__controls" aria-label="Scoring weights">
+                <WeightSlider
+                    label="Intensity"
+                    value={weights.weight_intensity}
+                    disabled={!countryCode}
+                    onChange={(value) => setWeight("weight_intensity", value)}
+                />
+                <WeightSlider
+                    label="Richness"
+                    value={weights.weight_richness}
+                    disabled={!countryCode}
+                    onChange={(value) => setWeight("weight_richness", value)}
+                />
+                <WeightSlider
+                    label="Locality"
+                    value={weights.weight_locality}
+                    disabled={!countryCode}
+                    onChange={(value) => setWeight("weight_locality", value)}
+                />
             </div>
-            <h3 className="side-panel__heading">Locality</h3>
-            <div className="side-panel__content">
-                <input type="range"></input>
-            </div> */}
         </>
     );
 }
