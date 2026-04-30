@@ -324,7 +324,7 @@ function SidePanelContent({ selectedCountry }) {
                 if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
                 return response.json();
             })
-            .then((data) => {
+            .then(data => {
                 setArticles(data);
                 setLoading(false);
             })
