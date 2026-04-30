@@ -19,7 +19,7 @@ const ZState = Object.freeze({
 const INITIAL_SCALE = 300;
 
 const Globe = () => {
-    console.log("react rendering globe component");
+    // console.log("react rendering globe component");
     const canvasRef = useRef(null);
     // const goBackButtonRef = useRef(null);
     const [displayGoBack, setDisplayGoBack] = useState(false);
@@ -255,7 +255,7 @@ const Globe = () => {
                     render(false);
                     timer.stop();
                     console.log("timer stopped");
-                }, 200);
+                }, 100);
             }
         });
 
