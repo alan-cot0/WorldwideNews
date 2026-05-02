@@ -27,8 +27,11 @@ The script expects `data/gkg.csv` to be in the root of the repo. It populates tw
 
 The script expects `.env` file to be present in the backend folder. In should look like the following:
 ```
-USER=youruser
+USER=postgres
 PASS=yourpass
+RUN_SETUP=True
+USE_CACHE=True
+CACHE_CSV=data/translingual.csv # or another location to pull your cached csv from
 ```
 
 ### Backend
