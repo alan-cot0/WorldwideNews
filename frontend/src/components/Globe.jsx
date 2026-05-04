@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback, forceUpdate } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import * as d3 from "d3";
 
 // This is the dataset that holds the country boundaries and globe data
@@ -18,7 +18,7 @@ const ZState = Object.freeze({
 // initial globe size
 const INITIAL_SCALE = 300;
 
-const Globe = ({setSelectedCountry}) => {
+const Globe = ({ onCountryClick, onBackToGlobe, setSelectedCountry }) => {
     // console.log("react rendering globe component");
     const canvasRef = useRef(null);
     // const goBackButtonRef = useRef(null);
@@ -104,8 +104,8 @@ const Globe = ({setSelectedCountry}) => {
 
         projection.current.translate([w / 2, h / 2]);
         // console.log("current scale", projection.current.scale());
-        if (zoomState.current === ZState.NotZoomed && projection.current.scale() > 900)
-            lowRes = false; //if zoomed in, override to high res
+        // if (zoomState.current === ZState.NotZoomed && projection.current.scale() > 900)
+        //     lowRes = false; //if zoomed in, override to high res
 
         //d3 function that converts coordinates to canvas shapes
         const path = d3.geoPath(projection.current, context);
@@ -251,11 +251,11 @@ const Globe = ({setSelectedCountry}) => {
                 hoveredCountry.current = country;
                 // console.log("changing country hover");
                 render(true);
-                timer.restart((t) => {
+                timer.restart(() => {
                     render(false);
                     timer.stop();
                     console.log("timer stopped");
-                }, 200);
+                }, 100);
             }
         });
 
@@ -271,6 +271,9 @@ const Globe = ({setSelectedCountry}) => {
             //converts that coordinate to a country if the click is within a country
             const country = data.countries.find(f => d3.geoContains(f, p));
             if (!country) return; // if user clicks on ocean, do nothing
+
+            //triggers sidebar when country
+            if (onCountryClick) onCountryClick();
 
             //stop name hovering
             hoveredCountry.current = null;
@@ -332,10 +335,12 @@ const Globe = ({setSelectedCountry}) => {
         return () => {
             console.log(data, canvasRef);
         }
-    }, [data, canvasRef]);
+    }, [data, canvasRef, onCountryClick]);
 
     //unzoom when the go back button is clicked
     const handleGoBack = useCallback(() => {
+
+        if (onBackToGlobe) onBackToGlobe();
         setDisplayGoBack(false);
         zoomState.current = ZState.ZoomingOut;
 
@@ -352,8 +357,9 @@ const Globe = ({setSelectedCountry}) => {
             .end().finally(() => {
                 activeCountry.current = null;
                 zoomState.current = ZState.NotZoomed;
+                render(false);
             });
-    }, [render, targetZoom]);
+    }, [render, targetZoom, onBackToGlobe]);
 
     return (
         <div style={{ width: "100%", height: "100vh", overflow: "hidden" }}>
@@ -367,7 +373,8 @@ const Globe = ({setSelectedCountry}) => {
                         top: "80px",
                         left: "50%",
                         transform: "translateX(-50%)",
-                        // background: "white",
+                        color: "black",
+                        background: "white",
                         border: "2px solid black",
                         padding: "10px 20px",
                         cursor: "pointer",
