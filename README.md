@@ -21,7 +21,7 @@ CACHE_CSV=data/translingual.csv
 The fields are as follows:
 - `USER`: The initial superuser created during install. By default, this is postgres.
 - `PASS`: The password associated with this user created during install. It is important to not forget this.
-- `RUN_SETUP`: Boolean value representing whether or not to run the setup process, which consists of getting GKG data and setting up the database relations and inserting rows. This is a fairly expensive process so it is recommended to set this option to false after loading the data once.
+- `RUN_SETUP`: Boolean value representing whether or not to run the setup process, which consists of getting GKG data and setting up the database relations / inserting rows. This is a fairly expensive process so it is recommended to set this option to false after running the setup process once.
 - `USE_CACHE`: Boolean value representing whether or not to use a cached CSV. Otherwise, the data will be loaded live from the GDELT API.
 - `CACHE_CSV`: File path to your cached CSV (relative to the backend folder).  
 
@@ -52,3 +52,7 @@ npm run dev
 ```
 
 ## Testing
+
+### Backend
+
+### Frontend
