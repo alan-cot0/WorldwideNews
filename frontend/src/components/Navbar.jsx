@@ -2,9 +2,9 @@ import React, { useState, useCallback } from "react";
 import ScoreAbout from "./ScoreAbout";
 import "./Navbar.css";
 
-const Navbar = () => {
+const Navbar = ({activeScoreAbout, setActiveScoreAbout}) => {
     const [menuOpen, setMenuOpen] = useState(false);
-    const [activeScoreAbout, setActiveScoreAbout] = useState(null);
+    //const [activeScoreAbout, setActiveScoreAbout] = useState(null);
 
     const toggleMenu = useCallback((setting) => {
         if (setting !== undefined) {

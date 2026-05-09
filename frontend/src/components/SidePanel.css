@@ -224,3 +224,27 @@
     color: #ffffff;
     text-decoration: underline;
 }
+
+
+.side-panel__scoring-link {
+    background: none;
+    border: none;
+    color: #7eb8f7;
+    
+    font-family: inherit; 
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    transition: color 0.2s ease;
+}
+
+.side-panel__scoring-link:hover,
+.side-panel__scoring-link:focus-visible {
+    color: #ffffff;
+    outline: none;
+}
