@@ -26,13 +26,26 @@ from pydantic import BaseModel, Field
 from psycopg_pool import AsyncConnectionPool
 from psycopg import AsyncConnection
 from psycopg.rows import dict_row
+import csv
+import sys
+
+max_size = sys.maxsize
+
+while True:
+    try:
+        csv.field_size_limit(max_size)
+        break
+    except OverflowError:
+        max_size = int(max_size / 10)
 
 load_dotenv()
 
 DB_URL = "postgresql://localhost/worldwidenews"
 
 # To not request too much from GDELT
-USE_CACHE = True
+RUN_SETUP = os.getenv("RUN_SETUP").lower() == "true"
+USE_CACHE = os.getenv("USE_CACHE").lower() == "true"
+CACHE_CSV = os.getenv("CACHE_CSV")
 
 # https://blog.danielclayton.co.uk/posts/database-connections-with-fastapi/
 
@@ -165,13 +178,14 @@ async def _preview_scored_top5(
 async def lifespan(app: FastAPI):
     
     await pool.open()
-    
-    async with pool.connection() as conn:
-        await create_tables(conn)
-        await clear_tables(conn)
-        await load_mappings(conn)
-        await refresh_15min(conn, USE_CACHE)
-        await populate_top5_all_countries(conn)
+
+    if (RUN_SETUP):
+        async with pool.connection() as conn:
+            await create_tables(conn)
+            await clear_tables(conn)
+            await load_mappings(conn)
+            await refresh_15min(conn, USE_CACHE, CACHE_CSV)
+            await populate_top5_all_countries(conn)
         
     yield
 

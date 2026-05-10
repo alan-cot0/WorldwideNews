@@ -1,6 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback, //forceUpdate
-
- } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import * as d3 from "d3";
 
 // This is the dataset that holds the country boundaries and globe data
@@ -106,8 +104,8 @@ const Globe = ({ onCountryClick, onBackToGlobe, setSelectedCountry }) => {
 
         projection.current.translate([w / 2, h / 2]);
         // console.log("current scale", projection.current.scale());
-        if (zoomState.current === ZState.NotZoomed && projection.current.scale() > 900)
-            lowRes = false; //if zoomed in, override to high res
+        // if (zoomState.current === ZState.NotZoomed && projection.current.scale() > 900)
+        //     lowRes = false; //if zoomed in, override to high res
 
         //d3 function that converts coordinates to canvas shapes
         const path = d3.geoPath(projection.current, context);
@@ -253,11 +251,11 @@ const Globe = ({ onCountryClick, onBackToGlobe, setSelectedCountry }) => {
                 hoveredCountry.current = country;
                 // console.log("changing country hover");
                 render(true);
-                timer.restart((t) => {
+                timer.restart(() => {
                     render(false);
                     timer.stop();
                     console.log("timer stopped");
-                }, 200);
+                }, 100);
             }
         });
 
@@ -359,6 +357,7 @@ const Globe = ({ onCountryClick, onBackToGlobe, setSelectedCountry }) => {
             .end().finally(() => {
                 activeCountry.current = null;
                 zoomState.current = ZState.NotZoomed;
+                render(false);
             });
     }, [render, targetZoom, onBackToGlobe]);
 
@@ -374,7 +373,8 @@ const Globe = ({ onCountryClick, onBackToGlobe, setSelectedCountry }) => {
                         top: "80px",
                         left: "50%",
                         transform: "translateX(-50%)",
-                        // background: "white",
+                        color: "black",
+                        background: "white",
                         border: "2px solid black",
                         padding: "10px 20px",
                         cursor: "pointer",
