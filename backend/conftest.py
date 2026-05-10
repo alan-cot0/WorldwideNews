@@ -4,8 +4,12 @@ import asyncio
 from psycopg_pool import AsyncConnectionPool
 from dotenv import load_dotenv
 import os
+import sys
 
 load_dotenv()
+
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 TEST_DB_URL = f"postgresql://{os.getenv('USER')}:{os.getenv('PASS')}@localhost/worldwidenews_test"
 

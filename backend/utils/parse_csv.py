@@ -373,8 +373,8 @@ async def refresh_country_status(conn: AsyncConnection):#added this(aryan)
         await cur.execute(sql)
     await conn.commit()
 
-async def get_cached ():
-    with open_csv("data/gkg.csv") as f:
+async def get_cached (filepath: str):
+    with open_csv(filepath) as f:
         reader = csv.DictReader(f)
 
         for row in reader:
@@ -388,14 +388,14 @@ async def clear_tables (conn: AsyncConnection):
         await cur.execute("TRUNCATE TABLE raw_articles;")
         await cur.execute("TRUNCATE TABLE top5_cache;")
     
-async def refresh_15min (conn: AsyncConnection, cache: bool):
+async def refresh_15min (conn: AsyncConnection, cache: bool, filepath: str):
     
     print("Fetching Url")
     _, _, gkg_url = await get_update()
     
     stream = None
     if (cache):
-        stream = get_cached()
+        stream = get_cached(filepath)
     else:
         stream = await parse_gkg(gkg_url)
 

@@ -214,7 +214,7 @@ def resolve_weights(
     return (wi, wr, wl)
 
 
-async def fetch_country_articles_for_scoring(conn: AsyncConnection) -> pd.DataFrame:
+async def fetch_country_articles_for_scoring(conn: AsyncConnection, country_code: str = None) -> pd.DataFrame:
     """
     Load article rows for one country from country_articles (filtered by
     country_code). Locality uses total_source_location_count and
@@ -223,40 +223,46 @@ async def fetch_country_articles_for_scoring(conn: AsyncConnection) -> pd.DataFr
     omit it from your deployed schema.
     """
     sql = """
-    SELECT
-        ca.url,
-        ca.country_code,
-        ca.source_name,
-        ca.themes,
-        ca.persons,
-        ca.tone,
-        ca.polarity,
-        ca.theme_count,
-        ca.person_count,
-        COALESCE(ca.total_source_location_count, 0)::double precision
-            AS total_source_location_count,
-        COALESCE(ca.total_location_count, 0)::double precision AS total_location_count,
-        ca.page_title,
-        cm.country_name
-    FROM country_articles ca
-    INNER JOIN country_mappings cm ON ca.source_name = cm.domain_name;
+        SELECT
+            ca.url,
+            ca.country_code,
+            ca.source_name,
+            ca.themes,
+            ca.persons,
+            ca.tone,
+            ca.polarity,
+            ca.theme_count,
+            ca.person_count,
+            COALESCE(ca.total_source_location_count, 0)::double precision AS total_source_location_count,
+            COALESCE(ca.total_location_count, 0)::double precision AS total_location_count,
+            ca.page_title,
+            cm.country_name
+        FROM country_articles ca
+        INNER JOIN country_mappings cm ON ca.source_name = cm.domain_name
     """
-
+    
     # TODO: Change above to country_status when we get country_status working
+    
+    params = None
+    if country_code is not None:
+        sql += " WHERE ca.country_code = %s;"
+        params = (country_code,)
+    else:
+        sql += ";"
 
     async with conn.cursor(row_factory=dict_row) as cur:
-        await cur.execute(sql)
+        await cur.execute(sql, params)
         rows = await cur.fetchall()
 
     return pd.DataFrame(rows)
 
 async def resolve_country_name(conn: AsyncConnection, country_code: str) -> str:
     async with conn.cursor(row_factory=dict_row) as cur:
-        cur.execute(
+        await cur.execute(
             "SELECT country_name FROM country_status WHERE country_code = %s",
             (country_code,),
         )
-        r = cur.fetchone()
+        r = await cur.fetchone()
         if r and r.get("country_name"):
             return str(r["country_name"])
     return country_code
@@ -264,11 +270,11 @@ async def resolve_country_name(conn: AsyncConnection, country_code: str) -> str:
 
 async def fetch_existing_top5_headlines_by_url(conn: AsyncConnection, country_code: str) -> dict[str, str]:
     async with conn.cursor(row_factory=dict_row) as cur:
-        cur.execute(
+        await cur.execute(
             "SELECT url, headline FROM top5_cache WHERE country_code = %s",
             (country_code,),
         )
-        rows = cur.fetchall()
+        rows = await cur.fetchall()
     return {str(r["url"]): str(r["headline"]) for r in rows}
 
 
@@ -386,7 +392,7 @@ async def populate_top5_all_countries(conn: AsyncConnection) -> dict[str, bool]:
 
 
 
-def update_country_scoring_db(
+async def update_country_scoring_db(
     conn,
     country_code: str,
     weight_intensity: Optional[float] = None,
@@ -400,11 +406,11 @@ def update_country_scoring_db(
     Returns False if fewer than five articles (top5_cache for this country cleared).
     """
     wi, wr, wl = resolve_weights(weight_intensity, weight_richness, weight_locality)
-    country_name = resolve_country_name(conn, country_code)
-    old_headlines = fetch_existing_top5_headlines_by_url(conn, country_code)
-    df = fetch_country_articles_for_scoring(conn, country_code)
+    country_name = await resolve_country_name(conn, country_code)
+    old_headlines = await fetch_existing_top5_headlines_by_url(conn, country_code)
+    df = await fetch_country_articles_for_scoring(conn, country_code)
     if len(df) < 5:
-        replace_country_top5_cache(conn, country_code, [])
+        await replace_country_top5_cache(conn, country_code, [])
         return False
     scored = score_articles(
         df,
@@ -414,7 +420,7 @@ def update_country_scoring_db(
     )
     top5 = select_top5(scored)
     if not top5:
-        replace_country_top5_cache(conn, country_code, [])
+        await replace_country_top5_cache(conn, country_code, [])
         return False
     merged: dict[str, str] = {}
     for row in top5:
@@ -432,7 +438,7 @@ def update_country_scoring_db(
                     persons=row.get("persons"),
                 )
     rows = _rows_for_top5(country_code, country_name, top5, merged)
-    replace_country_top5_cache(conn, country_code, rows)
+    await replace_country_top5_cache(conn, country_code, rows)
     return True
 
 

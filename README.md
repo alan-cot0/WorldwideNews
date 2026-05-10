@@ -1,43 +1,52 @@
 # WorldWide News
 A web application that allows users to click on any country in the world and take a look at the most popular news articles from that country. Users can change various relevancy parameters to configure the different types of news they are interested in seeing. All news articles are sourced from the GDELT 2.0 API.
 
-## Setup / Running
+## Installation and Running
 
 ### PostgreSQL (required before running the backend)
-Install and start PostgreSQL via Homebrew:
+Download PostgreSQL from here: [https://www.postgresql.org/download/](https://www.postgresql.org/download/) and follow the download instructions. Make sure that the psql is installed properly and also remember your username and password provided.
+
+### Additional Backend Setup
+If you are using a cached CSV file, the script expects `data/gkg.csv` to be in the backend folder. This is a CSV containing rows from the GDELT GKG api. By default, on startup the app will pull the third link (the gkg data) from [http://data.gdeltproject.org/gdeltv2/lastupdate.txt](http://data.gdeltproject.org/gdeltv2/lastupdate.txt). This process is rather expensive and if you would prefer this not to happen, then you can manually download the CSV from the link.
+
+Further, the script expects `.env` file to be present in the backend folder. In should look similar to the following:
 ```
-brew install postgresql@16
-brew services start postgresql@16
-echo 'export PATH="/opt/homebrew/opt/postgresql@16/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
-createdb worldwidenews
+USER=postgres
+PASS=mypassword
+RUN_SETUP=True
+USE_CACHE=True
+CACHE_CSV=data/translingual.csv
 ```
 
-### Database Setup & CSV Parsing
-This loads the GDELT GKG CSV into PostgreSQL (creates tables automatically):
+The fields are as follows:
+- `USER`: The initial superuser created during install. By default, this is postgres.
+- `PASS`: The password associated with this user created during install. It is important to not forget this.
+- `RUN_SETUP`: Boolean value representing whether or not to run the setup process, which consists of getting GKG data and setting up the database relations / inserting rows. This is a fairly expensive process so it is recommended to set this option to false after running the setup process once.
+- `USE_CACHE`: Boolean value representing whether or not to use a cached CSV. Otherwise, the data will be loaded live from the GDELT API.
+- `CACHE_CSV`: File path to your cached CSV (relative to the backend folder).  
+
+Finally, install the required backend python packages:
+
 ```
-cd backend
-pip3 install psycopg2-binary
-python3 parse_csv.py
+python3 -m venv .venv
+pip install -r requirements.txt
 ```
 
-The script expects `data/gkg.csv` to be in the root of the repo. It populates two tables:
-- `raw_articles` — quality-filtered GKG rows with country assignment
-- `country_articles` — same rows with computed tone/count fields for relevancy scoring
+### Frontend Setup
 
-The script expects `.env` file to be present in the backend folder. In should look like the following:
+Download Node.JS from here: [https://nodejs.org/en](https://nodejs.org/en) and follow the download instructions. Once installed, you can run the following commands:
+
 ```
-USER=youruser
-PASS=yourpass
+cd frontend
+npm i
 ```
+
+## Running
+It's recommended to have two terminals open for both the backend and frontend.
 
 ### Backend
 ```
 cd backend
-
-#run this block only on first setup
-    python3 -m venv .venv
-    pip install -r requirements.txt
 
 # Runs fastapi server
 fastapi dev main.py
@@ -46,7 +55,40 @@ fastapi dev main.py
 ### Frontend
 ```
 cd frontend
-npm i
+
 # Runs vite dev server
 npm run dev
 ```
+
+## Testing
+
+### Frontend
+
+1. Enter the website through the URL
+2. Check for methodology being displayed on the page
+3. Check About and Scoring pages can be opened closed, and scrolled on
+4. Test dragging functionality with mouse (make sure not too laggy)
+5. Click on a country, make sure it zooms in and displays country name, and highlights it
+6. Check for popup when zoomed in with title, link, and publisher
+7. Verify scoring sliders when used update articles displayed in a manner consistent with expectations
+8. Click the zoom out button and make sure it goes back to original view seamlessly
+9. Repeat steps 5-8 10 times.
+10. Check the mousepad/scroll wheel zoom is smooth and functional. Try doing steps 5-8 while starting from a partially zoomed state. Additionally, when executing step 8, make sure it zooms back out to the full globe view if the user was zoomed in when entering the country view.
+
+
+### Backend
+
+In order to run tests, you will first need to setup a test database on Postgres. In PSQL, run the following command:
+
+```sql
+CREATE DATABASE worldwidenews_test;
+```
+
+Afterwards, you can run the test cases using pytest:
+
+```
+cd backend
+pytest -v -s
+```
+
+
