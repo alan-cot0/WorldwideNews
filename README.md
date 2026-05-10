@@ -56,3 +56,14 @@ npm run dev
 ### Backend
 
 ### Frontend
+
+1. Enter the website through the URL
+2. Check for methodology being displayed on the page
+3. Check About and Scoring pages can be opened closed, and scrolled on
+4. Test dragging functionality with mouse (make sure not too laggy)
+5. Click on a country, make sure it zooms in and displays country name, and highlights it
+6. Check for popup when zoomed in with title, link, and publisher
+7. Verify scoring sliders when used update articles displayed in a manner consistent with expectations
+8. Click the zoom out button and make sure it goes back to original view seamlessly
+9. Repeat steps 5-8 10 times.
+10. Check the mousepad/scroll wheel zoom is smooth and functional. Try doing steps 5-8 while starting from a partially zoomed state. Additionally, when executing step 8, make sure it zooms back out to the full globe view if the user was zoomed in when entering the country view.
