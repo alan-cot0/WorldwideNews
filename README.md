@@ -3,6 +3,9 @@ A web application that allows users to click on any country in the world and tak
 
 ## Installation and Running
 
+## Python (required before running the backend)
+Download Python from here: [https://www.python.org/](https://www.python.org/) and follow the download instructions.
+
 ### PostgreSQL (required before running the backend)
 Download PostgreSQL from here: [https://www.postgresql.org/download/](https://www.postgresql.org/download/) and follow the download instructions. Make sure that the PSQL is installed properly and also remember your username and password you entered.
 
