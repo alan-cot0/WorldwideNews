@@ -12,12 +12,16 @@ function App() {
 
     const [isOpen, setIsOpen] = useState(false);
 
+    const [activeScoreAbout, setActiveScoreAbout] = useState(null);
+
     return (
         <>
-            <Navbar />
+            <Navbar 
+                activeScoreAbout={activeScoreAbout} 
+                setActiveScoreAbout={setActiveScoreAbout}/>
             <main className="app-main">
 
-                <SidePanel isOpen={isOpen} setIsOpen={setIsOpen} selectedCountry={selectedCountry} />
+                <SidePanel isOpen={isOpen} setIsOpen={setIsOpen} selectedCountry={selectedCountry} onOpenScoring={() => setActiveScoreAbout("scoring")} />
 
                 <div className="globe-wrapper">
                     <Globe onCountryClick={() => setIsOpen(true)}

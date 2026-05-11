@@ -296,7 +296,7 @@ function WeightSlider({ label, value, onChange, disabled }) {
 }
 
 // AI GENERATED: https://genai.umass.edu/share/MvjIEppqjGUUiJqtCbIub
-function SidePanelContent({ selectedCountry }) {
+function SidePanelContent({ selectedCountry, onOpenScoring }) {
     const [articles, setArticles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
@@ -381,6 +381,18 @@ function SidePanelContent({ selectedCountry }) {
             <div className="side-panel__content">
                 <NewsTable articles={articles} loading={loading || updating} error={error} />
             </div>
+
+
+            <div style={{ marginTop: "24px", marginBottom: "-4px", textAlign: "right" }}>
+                <button 
+                    className="side-panel__scoring-link" 
+                    onClick={onOpenScoring}
+                >
+                    How Our Scoring Works
+                </button>
+            </div>
+
+
             <div className="side-panel__controls" aria-label="Scoring weights">
                 <WeightSlider
                     label="Intensity"
@@ -405,7 +417,7 @@ function SidePanelContent({ selectedCountry }) {
     );
 }
 
-function SidePanel({ isOpen, setIsOpen, selectedCountry }) {
+function SidePanel({ isOpen, setIsOpen, selectedCountry, onOpenScoring}) {
     //const [isOpen, setIsOpen] = useState(false);
 
     return (
@@ -415,7 +427,7 @@ function SidePanel({ isOpen, setIsOpen, selectedCountry }) {
              * reflows mid-animation. overflow:hidden on the parent
              * clips it to the current animated width.
              */}
-            <div className="side-panel__body">{isOpen && <SidePanelContent selectedCountry={selectedCountry} />}</div>
+            <div className="side-panel__body">{isOpen && <SidePanelContent selectedCountry={selectedCountry} onOpenScoring={onOpenScoring} />}</div>
             {/* Toggle tab — always visible at the right edge of the panel */}
             <button
                 className="side-panel__toggle"
