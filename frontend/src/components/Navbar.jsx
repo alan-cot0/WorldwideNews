@@ -91,16 +91,22 @@ const Navbar = ({activeScoreAbout, setActiveScoreAbout}) => {
             </ScoreAbout>
 
             <ScoreAbout isOpen={activeScoreAbout === "scoring"} onClose={() => setActiveScoreAbout(null)} title="Scoring">
-                <p>It can also be used to allow materials to expand and contract under varying thermal conditions.
-                     Scoring is used in place of cutting through the material all the way because you can obtain 
-                     relatively the same results with less time and labor. However, when breaking along the score 
-                     line the material may deviate from the set guideline, the back side of the break line often 
-                     has a jagged edge to it from the shear fracture, and scoring offers very little use to metallic 
-                     materials due to their malleability. Due to their hardness, tile, stone, glass, and ceramics respond 
-                    well to scoring, and so the practice finds use in tile setting, stoneworking, glassblowing, and 
-                    ceramics work respectively. Scoring is most commonly used in concrete work for decoration by making
-                    the grooves appear to be grout lines from tile work. Confectioners often score hard candy such as 
-                    butterscotch when batching it in sheets, in part because it avoids damaging the underlying baking tray.</p>
+                <div style={{ textIndent: '30px' }}>
+                <p>WorldwideNews ranks articles separately for each country. When you select a country, the system looks at news 
+                articles connected to that country and gives each article a relevancy score. That score is based on three signals: 
+                Intensity, Richness, and Locality. </p>
+
+                <p>Intensity measures how strong the article’s tone is. Articles with stronger positive or negative tone may receive a higher intensity score than more neutral articles. This uses tone and polarity data from GDELT.
+                Richness measures how much context the article contains. Articles with more detected themes and named people receive a higher richness score because they give the system more information to evaluate.
+                Locality measures how closely the article is connected to the selected country. Articles receive a higher locality score when more of their location mentions are tied to that country.
+                </p>
+                <p>
+                The final relevancy score combines these three signals. By default, Intensity has the most influence, while Richness and Locality also contribute. 
+                Users can adjust the sliders to change the ranking: increasing a slider makes that signal matter more, while lowering it makes that signal matter less.
+                After articles are scored, WorldwideNews shows the top-ranked articles for the selected country. The ranking also tries to include some variety in topics, 
+                so the list is not only the five highest-scoring articles from the same theme.
+                </p>
+                </div>
             </ScoreAbout>
         </>
     );
