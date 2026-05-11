@@ -182,7 +182,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 1);
     white-space: nowrap;
 }
 
@@ -197,14 +197,14 @@
 
 /* Rank column */
 .side-panel__news-table td:nth-child(1) {
-    color: rgba(255, 255, 255, 0.35);
+    color: rgba(255, 255, 255, 1);
     font-size: 0.7rem;
     text-align: center;
 }
 
 /* Source column */
 .side-panel__news-table td:nth-child(3) {
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(255, 255, 255, 1);
     font-size: 0.7rem;
     word-break: break-all;  /* long hostnames won't overflow */
 }
