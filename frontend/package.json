@@ -4,24 +4,28 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test": "vitest",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-
     "format": "prettier --config .prettierrc --write src/",
     "format:check": "prettier --config .prettierrc --check src/"
-    
   },
   "dependencies": {
     "d3": "^7.9.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "topojson-client": "^3.1.0",
-    "versor": "^0.2.0"
+    "versor": "^0.2.0",
+    "vitest-browser-react": "^2.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
@@ -30,7 +34,9 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "jsdom": "^29.1.1",
     "prettier": "3.8.1",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vitest": "^4.1.6"
   }
 }
